@@ -195,7 +195,7 @@ export const useBridgeContract = () => {
         console.error('Error getting all transactions:', error)
         return []
       }
-    }
+    },
     estimateBridgeFee,
     checkFeeRequirements
   }
