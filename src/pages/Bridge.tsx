@@ -67,7 +67,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   useEffect(() => {
     if (account) {
       checkUSDTFeeRequirements()
-      loadUserTransactions()
+      loadUserTransactions() 
     }
   }, [account])
 
@@ -101,9 +101,14 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   const loadUserTransactions = async () => {
     if (!account) return
     
-    // Get transactions without throwing errors
-    const txs = await getUserTransactions(account)
-    setUserTransactions(txs)
+    try {
+      // Get transactions without throwing errors
+      const txs = await getUserTransactions(account)
+      setUserTransactions(txs)
+    } catch (error) {
+      console.error('Error loading user transactions:', error)
+      setUserTransactions([])
+    }
   }
 
   const handleBridge = async () => {

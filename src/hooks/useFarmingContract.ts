@@ -121,7 +121,20 @@ export const useFarmingContract = () => {
     if (!farmingContract) throw new Error('Contract not available')
     
     try {
-      const stats = await farmingContract.getFarmingStats()
+      // Check if the function exists before calling it
+      let stats;
+      if (typeof farmingContract.getFarmingStats === 'function') {
+        stats = await farmingContract.getFarmingStats();
+      } else {
+        console.warn('getFarmingStats function not available on farming contract');
+        return {
+          totalPools: 0,
+          totalAllocPoint: 0,
+          esrPerSecond: '0',
+          totalValueLocked: '0'
+        };
+      }
+      
       return {
         totalPools: Number(stats.totalPools),
         totalAllocPoint: Number(stats._totalAllocPoint),
@@ -131,7 +144,7 @@ export const useFarmingContract = () => {
     } catch (error) {
       console.error('Error fetching farming stats:', error)
       // Return default values if contract call fails
-      return {
+      return { 
         totalPools: 0,
         totalAllocPoint: 0,
         esrPerSecond: '0',

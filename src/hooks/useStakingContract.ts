@@ -100,7 +100,7 @@ export const useStakingContract = () => {
   const getStakingStats = async () => {
     if (!stakingContract) {
       console.error('Staking contract not available')
-      return {
+      return { 
         totalStaked: '0',
         totalStakers: 0,
         totalRewardsDistributed: '0',
@@ -110,12 +110,23 @@ export const useStakingContract = () => {
     }
     
     const stats = await stakingContract.getStakingStats()
-    return {
-      totalStaked: ethers.formatEther(stats._totalStaked),
-      totalStakers: Number(stats._totalStakers),
-      totalRewardsDistributed: ethers.formatUnits(stats._totalRewardsDistributed, 6),
-      pendingRewards: ethers.formatUnits(stats._pendingRewards, 6),
-      currentAPR: ethers.formatEther(stats._currentAPR)
+    try {
+      return {
+        totalStaked: ethers.formatEther(stats._totalStaked),
+        totalStakers: Number(stats._totalStakers),
+        totalRewardsDistributed: ethers.formatUnits(stats._totalRewardsDistributed, 6),
+        pendingRewards: ethers.formatUnits(stats._pendingRewards, 6),
+        currentAPR: ethers.formatEther(stats._currentAPR)
+      }
+    } catch (error) {
+      console.error('Error parsing staking stats:', error)
+      return {
+        totalStaked: '0',
+        totalStakers: 0,
+        totalRewardsDistributed: '0',
+        pendingRewards: '0',
+        currentAPR: '0'
+      }
     }
   }
 

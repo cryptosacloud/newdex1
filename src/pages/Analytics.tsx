@@ -85,7 +85,16 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       }
       try {
         if (isConnected) {
-          const stats = await getStakingStats()
+          const stats = await getStakingStats().catch(err => {
+            console.warn('Could not load staking stats, using defaults', err);
+            return {
+              totalStaked: '0',
+              totalStakers: 0,
+              totalRewardsDistributed: '0',
+              pendingRewards: '0',
+              currentAPR: '0'
+            };
+          });
           if (stats) {
             stakingStats = stats
           }
@@ -128,7 +137,10 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       }
       try {
         if (isConnected) {
-          const bridgeTxs = await getAllTransactions()
+          const bridgeTxs = await getAllTransactions().catch(err => {
+            console.warn('Could not load bridge transactions, using defaults', err);
+            return [];
+          });
           if (bridgeTxs) {
             bridgeStats.transactions = bridgeTxs.length
             // Volume calculation would require getting transaction details
