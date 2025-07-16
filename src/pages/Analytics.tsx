@@ -56,24 +56,21 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
 
   const loadAnalyticsData = async () => {
     try {
-      let pairs = []
-      if (contracts.factory) {
-        pairs = await getAllPairs()
-      }
-      
       // Load DEX data
       let dexTVL = 0
       let totalPools = 0
       try {
-        const pairs = await getAllPairs()
-        totalPools = pairs.length
-        
-        for (const pairAddress of pairs.slice(0, 10)) { // Limit to prevent RPC overload
-          try {
-            const reserves = await getPairReserves(pairAddress)
-            dexTVL += parseFloat(reserves.reserve0) + parseFloat(reserves.reserve1)
-          } catch (error) {
-            console.error('Error loading pair reserves:', error)
+        if (contracts.factory) {
+          const pairs = await getAllPairs()
+          totalPools = pairs.length
+          
+          for (const pairAddress of pairs.slice(0, 10)) { // Limit to prevent RPC overload
+            try {
+              const reserves = await getPairReserves(pairAddress)
+              dexTVL += parseFloat(reserves.reserve0) + parseFloat(reserves.reserve1)
+            } catch (error) {
+              console.error('Error loading pair reserves:', error)
+            }
           }
         }
       } catch (error) {
@@ -83,11 +80,16 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       // Load staking stats
       let stakingStats = { 
         totalStaked: '0', 
-        totalRewardsDistributed: '0',
+        totalRewardsDistributed: '0', 
         totalStakers: 0
       }
       try {
-        stakingStats = await getStakingStats()
+        if (isConnected) {
+          const stats = await getStakingStats()
+          if (stats) {
+            stakingStats = stats
+          }
+        }
       } catch (error) {
         console.error('Error loading staking stats:', error)
       }
@@ -98,7 +100,12 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
         totalPools: 0
       }
       try {
-        farmingStats = await getFarmingStats()
+        if (isConnected) {
+          const stats = await getFarmingStats()
+          if (stats) {
+            farmingStats = stats
+          }
+        }
       } catch (error) {
         console.error('Error loading farming stats:', error)
       }
@@ -109,9 +116,13 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
         volume: '0'
       }
       try {
-        const bridgeTxs = await getAllTransactions()
-        bridgeStats.transactions = bridgeTxs.length
-        // Volume calculation would require getting transaction details
+        if (isConnected) {
+          const bridgeTxs = await getAllTransactions()
+          if (bridgeTxs) {
+            bridgeStats.transactions = bridgeTxs.length
+            // Volume calculation would require getting transaction details
+          }
+        }
       } catch (error) {
         console.error('Error loading bridge stats:', error)
       }
