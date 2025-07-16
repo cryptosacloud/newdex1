@@ -27,7 +27,7 @@ const Navigation: React.FC<NavigationProps> = ({ testnetMode }) => {
   // Add testnet indicator to navigation items when in testnet mode
   const navItemsWithMode = navItems.map(item => ({
     ...item,
-    label: testnetMode ? `${item.label} ${item === 'Bridge' ? '(Testnet)' : ''}` : item.label
+    label: testnetMode ? `${item.label} ${item.path === '/bridge' ? '(Testnet)' : ''}` : item.label
   }));
 
   return (

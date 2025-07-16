@@ -1,8 +1,11 @@
 import React from 'react';
 import { useWallet } from '../contexts/WalletContext';
+import { isTestnetChain } from '../constants/chainConfig';
 
 const TestnetModeToggle = ({ testnetMode, setTestnetMode }) => {
   const { isConnected, ensureCorrectChainType } = useWallet();
+  const { chainId } = useWallet();
+  const currentIsTestnet = chainId ? isTestnetChain(chainId) : false;
 
   const handleToggle = async () => {
     const newMode = !testnetMode;

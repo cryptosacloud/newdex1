@@ -11,7 +11,7 @@ interface BridgeProps {
 
 const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   const { isConnected, account, chainId } = useWallet()
-  const { lockTokens, burnAndBridge, getUserTransactions, estimateBridgeFee, checkFeeRequirements } = useBridgeContract()
+  const { lockTokens, burnAndBridge, getUserTransactions, estimateBridgeFee, checkFeeRequirements, getAllTransactions } = useBridgeContract()
   
   // Get chains based on testnet mode
   const availableChains = Object.entries(CHAIN_CONFIG)

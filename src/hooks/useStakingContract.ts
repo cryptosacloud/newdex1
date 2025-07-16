@@ -125,8 +125,13 @@ export const useStakingContract = () => {
   const distributeRewards = async () => {
     if (!stakingContract) throw new Error('Staking contract not available')
     
-    const tx = await stakingContract.distributeRewards()
-    return tx.wait()
+    try {
+      const tx = await stakingContract.distributeRewards()
+      return tx.wait()
+    } catch (error) {
+      console.error('Error distributing rewards:', error)
+      throw error
+    }
   }
 
   return {

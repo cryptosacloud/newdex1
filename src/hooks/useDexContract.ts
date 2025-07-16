@@ -50,6 +50,65 @@ export const useDexContract = () => {
     return new ethers.Contract(tokenAddress, ERC20_ABI, signer)
   }
 
+  const getAllPairs = async () => {
+    if (!contracts.factory) throw new Error('Factory not available')
+    
+    try {
+      const pairsLength = await contracts.factory.allPairsLength()
+      const pairs = []
+      
+      for (let i = 0; i < pairsLength; i++) {
+        const pairAddress = await contracts.factory.allPairs(i)
+        pairs.push(pairAddress)
+      }
+      
+      return pairs
+    } catch (error) {
+      console.error('Error getting all pairs:', error)
+      return []
+    }
+  }
+
+  const getPairReserves = async (pairAddress: string) => {
+    if (!provider) throw new Error('Provider not available')
+    
+    try {
+      const signer = await provider.getSigner()
+      const pairContract = new ethers.Contract(
+        pairAddress,
+        [
+          'function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
+          'function token0() external view returns (address)',
+          'function token1() external view returns (address)',
+          'function totalSupply() external view returns (uint256)'
+        ],
+        signer
+      )
+      
+      const [reserve0, reserve1] = await pairContract.getReserves()
+      const token0 = await pairContract.token0()
+      const token1 = await pairContract.token1()
+      const totalSupply = await pairContract.totalSupply()
+      
+      return {
+        reserve0: ethers.formatEther(reserve0),
+        reserve1: ethers.formatEther(reserve1),
+        token0,
+        token1,
+        totalSupply: ethers.formatEther(totalSupply)
+      }
+    } catch (error) {
+      console.error('Error getting pair reserves:', error)
+      return {
+        reserve0: '0',
+        reserve1: '0',
+        token0: ethers.ZeroAddress,
+        token1: ethers.ZeroAddress,
+        totalSupply: '0'
+      }
+    }
+  }
+
   const swapExactTokensForTokens = async (
     amountIn: string,
     amountOutMin: string,

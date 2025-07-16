@@ -29,7 +29,7 @@ const AdminRewards: React.FC = () => {
   const { 
     getAllPools, 
     getFarmingStats, 
-    addPool, 
+    addPool,
     setPool, 
     setPoolStatus, 
     setEmissionRate,

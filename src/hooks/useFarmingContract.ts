@@ -161,8 +161,13 @@ export const useFarmingContract = () => {
   const massUpdatePools = async () => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const tx = await farmingContract.massUpdatePools()
-    return tx.wait()
+    try {
+      const tx = await farmingContract.massUpdatePools()
+      return tx.wait()
+    } catch (error) {
+      console.error('Error updating pools:', error)
+      throw error
+    }
   }
 
   return {

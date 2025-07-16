@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-import { useChainManagement } from '../hooks/useChainManagement';
+import { useChainManagement } from '../hooks/useChainManagement.js';
 import { CHAIN_CONFIG, isTestnetChain, getChainName } from '../constants/chainConfig';
 import { AlertTriangle, Check, X } from 'lucide-react';
 
 const NetworkSwitcher = ({ testnetMode = false, preferredChainId = null }) => {
   const { isConnected, chainId } = useWallet();
   const { switchNetwork, ensureSupportedChain, isProcessing, error } = useChainManagement();
-  const [showModal, setShowModal] = useState(false);
-  const [modalChainId, setModalChainId] = useState(null);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [modalChainId, setModalChainId] = useState<number | null>(null);
 
   // Check if current chain matches the testnet mode
   const isCorrectNetworkType = chainId ? isTestnetChain(chainId) === testnetMode : false;

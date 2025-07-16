@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 import { useWallet } from '../contexts/WalletContext'
 import { getContractAddresses } from '../constants/contracts'
-import { getTokensByChain } from '../constants/tokens'
 import BRIDGE_ABI from '../../abi/Bridge/BridgeCore.json'
 import ERC20_ABI from '../../abi/Tokens/DexBridgeToken.json'
 
@@ -92,7 +91,7 @@ export const useBridgeContract = () => {
     tokenAddress: string,
     amount: string,
     targetChain: number,
-    targetAddress?: string
+    targetAddress: string = ''
   ) => {
     if (!bridgeContract || !account) throw new Error('Bridge contract not available')
     
@@ -128,10 +127,26 @@ export const useBridgeContract = () => {
   const getUserTransactions = async (userAddress?: string): Promise<string[]> => {
     if (!bridgeContract) throw new Error('Bridge contract not available')
     
+    try {
+      return await bridgeContract.getAllTransactions()
+    } catch (error) {
+      console.error('Error getting all transactions:', error)
+      return []
+    }
+  }
+
+  const getUserTransactions = async (userAddress?: string): Promise<string[]> => {
+    if (!bridgeContract) throw new Error('Bridge contract not available')
+    
     const address = userAddress || account
     if (!address) throw new Error('No address provided')
     
-    return await bridgeContract.getUserTransactions(address)
+    try {
+      return await bridgeContract.getUserTransactions(address)
+    } catch (error) {
+      console.error('Error getting user transactions:', error)
+      return []
+    }
   }
 
   const estimateBridgeFee = async (tokenAddress: string, amount: string) => {

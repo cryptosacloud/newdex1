@@ -77,7 +77,9 @@ export const SUPPORTED_CHAINS = {
     maxGasPrice: '1',
     blockTime: 3000
   }
-  // Testnets
+},
+// Testnets
+{
   5: {
     name: 'Goerli',
     rpcUrl: process.env.GOERLI_RPC_URL,

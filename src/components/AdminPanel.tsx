@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Shield, Plus, Settings, Users, Gift, AlertTriangle } from 'lucide-react'
+import { Shield, Plus, Settings, Users, Gift, AlertTriangle, AlertCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useBridgeContract } from '../hooks/useBridgeContract'
@@ -13,6 +13,7 @@ const AdminPanel: React.FC = () => {
   const [isOwner, setIsOwner] = useState(false)
   const [loading, setLoading] = useState(false)
   const [deploymentStatus, setDeploymentStatus] = useState<Record<number, { deployed: boolean; chainName: string }>>({})
+  const [contractsDeployed, setContractsDeployed] = useState(false)
 
   const [newToken, setNewToken] = useState({
     address: '',
@@ -29,6 +30,13 @@ const AdminPanel: React.FC = () => {
   useEffect(() => {
     setDeploymentStatus(getDeploymentStatus())
   }, [])
+
+  // Update contracts deployed state
+  useEffect(() => {
+    if (chainId && deploymentStatus[chainId]) {
+      setContractsDeployed(deploymentStatus[chainId].deployed)
+    }
+  }, [chainId, deploymentStatus])
 
   // Check if current account is contract owner
   useEffect(() => {
