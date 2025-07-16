@@ -5,6 +5,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { useBridgeContract } from '../hooks/useBridgeContract'
 import { getTokensByChain } from '../constants/tokens'
 import TestnetBadge from '../components/TestnetBadge'
+import TestnetBadge from '../components/TestnetBadge'
 
 interface BridgeProps {
   testnetMode: boolean;
@@ -31,7 +32,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   const [selectedToken, setSelectedToken] = useState('')
   const [bridgeFee, setBridgeFee] = useState<string>('0')
   const [isBridging, setIsBridging] = useState(false)
-  const [userTransactions, setUserTransactions] = useState<Array<{txId: string, status: string}>>([])
+  const [userTransactions, setUserTransactions] = useState<Array<{txId: string; status: string}>>([])
   const [feeWarning, setFeeWarning] = useState('')
 
   // Get available tokens for current chain
@@ -68,7 +69,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   useEffect(() => {
     if (account) {
       checkUSDTFeeRequirements()
-      loadUserTransactions() 
+      loadUserTransactions()
     }
   }, [account])
 
@@ -103,18 +104,27 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
     if (!account) return
     
     try {
-      const txIds = await getUserTransactions(account).catch(() => [])
+      const txIds = await getUserTransactions(account).catch((err) => {
+        console.warn('Could not load user transactions:', err);
+        return [];
+      })
       
       // Get transaction details for each txId
       const txDetails = await Promise.all(
         txIds.map(async (txId) => {
           try {
             const tx = await getTransaction(txId)
-            return {
-              txId,
-              status: ['Pending', 'Locked', 'Released', 'Completed', 'Failed'][tx.status] || 'Pending'
+            const statusMap = ['Pending', 'Locked', 'Released', 'Completed', 'Failed'];
+            const status = tx && tx.status !== undefined && statusMap[tx.status] 
+              ? statusMap[tx.status] 
+              : 'Pending';
+              
+            return { 
+              txId, 
+              status 
             }
           } catch (error) {
+            console.warn(`Could not get transaction details for ${txId}:`, error);
             return { txId, status: 'Pending' }
           }
         })
@@ -122,7 +132,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
       
       setUserTransactions(txDetails)
     } catch (error) {
-      console.error('Error loading user transactions:', error)
+      console.error('Error loading user transactions:', error);
       setUserTransactions([])
     }
   }
@@ -133,7 +143,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
       return
     }
     
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       alert('Please enter a valid amount')
       return
     }
@@ -149,7 +159,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
 
       // Check if we need to lock or burn tokens based on token origin
       const token = availableTokens.find(t => t.address === selectedToken)
-      const isNativeToken = token?.chainId === chainId
+      const isNativeToken = token && token.chainId === chainId
       
       if (isNativeToken) {
         // Lock tokens on source chain
@@ -327,14 +337,17 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
                     tx.status === 'Failed' ? 'bg-red-500' : 'bg-yellow-500'
                   }`} />
                   <div>
-                    <p className="font-medium text-sm">{tx.txId.slice(0, 10)}...</p>
+                    <p className="font-medium text-sm">{tx.txId && tx.txId.length > 10 ? tx.txId.slice(0, 10) + '...' : tx.txId || 'Unknown'}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Bridge Transaction
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium">{tx.status}</p>
+                  <p className={`text-sm font-medium ${
+                    tx.status === 'Completed' ? 'text-green-600 dark:text-green-400' : 
+                    tx.status === 'Failed' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'
+                  }`}>{tx.status}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                     <Clock className="w-3 h-3 mr-1" />
                     Processing
