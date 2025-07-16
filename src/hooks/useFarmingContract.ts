@@ -144,7 +144,7 @@ export const useFarmingContract = () => {
     } catch (error) {
       console.error('Error fetching farming stats:', error)
       // Return default values if contract call fails
-      return { 
+      return {
         totalPools: 0,
         totalAllocPoint: 0,
         esrPerSecond: '0',
@@ -153,18 +153,26 @@ export const useFarmingContract = () => {
     }
   }
 
-  // Admin functions
-  const addPool = async (lpToken: string, allocPoint: number, name: string, withUpdate: boolean = true) => {
-    if (!farmingContract) throw new Error('Contract not available')
-    
-    const tx = await farmingContract.addPool(lpToken, allocPoint, name, withUpdate)
-    return tx.wait()
-  }
-
-  const setPool = async (pid: number, allocPoint: number, withUpdate: boolean = true) => {
-    if (!farmingContract) throw new Error('Contract not available')
-    
-    const tx = await farmingContract.setPool(pid, allocPoint, withUpdate)
+      // Try to get pool length first
+      const poolLength = await farmingContract.poolLength().catch(() => BigInt(0));
+      
+      // If we can't get the farming stats directly, build them from other calls
+      let totalValueLocked = BigInt(0);
+      let totalAllocPoint = BigInt(0);
+      
+      // Try to get emission rate
+      const esrPerSecond = await farmingContract.esrPerSecond().catch(() => BigInt(0));
+      
+      // Try to get pools info if available
+      try {
+        const pools = await getAllPools();
+        totalAllocPoint = pools.allocPoints.reduce((sum, ap) => sum + BigInt(ap), BigInt(0));
+        totalValueLocked = pools.totalStaked.reduce(
+          (sum, ts) => sum + BigInt(ethers.parseEther(ts)), 
+          BigInt(0)
+        );
+      } catch (poolError) {
+        console.warn('Could not get pool information:', poolError);
     return tx.wait()
   }
 
@@ -183,10 +191,10 @@ export const useFarmingContract = () => {
   }
 
   const massUpdatePools = async () => {
-    if (!farmingContract) throw new Error('Contract not available')
-    
-    try {
-      const tx = await farmingContract.massUpdatePools()
+        totalPools: Number(poolLength),
+        totalAllocPoint: Number(totalAllocPoint),
+      return {
+        totalValueLocked: ethers.formatEther(totalValueLocked)
       return tx.wait()
     } catch (error) {
       console.error('Error updating pools:', error)
