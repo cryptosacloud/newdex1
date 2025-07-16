@@ -5,6 +5,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { useBridgeContract } from '../hooks/useBridgeContract'
 import { getTokensByChain } from '../constants/tokens'
 import { getDeploymentStatus } from '../constants/contracts'
+import { ethers } from 'ethers'
 
 const AdminPanel: React.FC = () => {
   const { account, isConnected, chainId } = useWallet()
@@ -35,6 +36,8 @@ const AdminPanel: React.FC = () => {
   useEffect(() => {
     if (chainId && deploymentStatus[chainId]) {
       setContractsDeployed(deploymentStatus[chainId].deployed)
+    } else {
+      setContractsDeployed(false);
     }
   }, [chainId, deploymentStatus])
 
@@ -379,10 +382,13 @@ const AdminPanel: React.FC = () => {
               />
             </div>
             <div className="flex space-x-3">
-        </div> 
-      )} 
-    </div> 
-  ) 
-}
+              <button className="btn-primary flex-1">Update Settings</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-export default AdminPanel
+export default AdminPanel;

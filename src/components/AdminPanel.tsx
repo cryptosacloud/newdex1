@@ -5,6 +5,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { useBridgeContract } from '../hooks/useBridgeContract'
 import { getTokensByChain } from '../constants/tokens'
 import { getDeploymentStatus } from '../constants/contracts'
+import { ethers } from 'ethers'
 
 interface NewToken {
   address: string;
@@ -77,7 +78,7 @@ const AdminPanel: React.FC = () => {
     }
 
     checkOwnership()
-  }, [bridgeContract, account])
+  }, [bridgeContract, account, contractsDeployed])
 
   const handleAddToken = async () => {
     if (!bridgeContract || !newToken.address || !newToken.chainId) {
@@ -290,10 +291,10 @@ const AdminPanel: React.FC = () => {
               <select
                 value={newToken.address}
                 onChange={(e) => setNewToken({ ...newToken, address: e.target.value })}
-                className="input-field w-full"
+                className="input-field"
               >
                 <option value="">Select a token</option>
-                {(availableTokens || []).map((token) => (
+                {availableTokens.map((token) => (
                   <option key={token.address} value={token.address}>
                     {token.symbol} - {token.name}
                   </option>
@@ -314,7 +315,7 @@ const AdminPanel: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Minimum Amount (ETH)
+                Minimum Amount (Wei)
               </label>
               <input
                 type="number"
@@ -326,7 +327,7 @@ const AdminPanel: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Maximum Amount (ETH)
+                Maximum Amount (Wei)
               </label>
               <input
                 type="number"
@@ -343,7 +344,7 @@ const AdminPanel: React.FC = () => {
               <input
                 type="number"
                 placeholder="250"
-                value={newToken.fee || '250'}
+                value={newToken.fee}
                 onChange={(e) => setNewToken({ ...newToken, fee: e.target.value })}
                 className="input-field"
               />
@@ -363,7 +364,7 @@ const AdminPanel: React.FC = () => {
           </div>
           <button
             onClick={handleAddToken}
-            disabled={loading || !newToken.address || !newToken.chainId}
+            disabled={loading}
             className="btn-primary mt-6"
           >
             {loading ? 'Adding...' : 'Add Token'}
@@ -389,7 +390,7 @@ const AdminPanel: React.FC = () => {
                 />
                 <button
                   onClick={handleAddRelayer}
-                  disabled={loading || !newRelayer || !ethers.isAddress(newRelayer)}
+                  disabled={loading}
                   className="btn-primary"
                 >
                   {loading ? 'Adding...' : 'Add Relayer'}
@@ -426,13 +427,12 @@ const AdminPanel: React.FC = () => {
             </div>
             <div className="flex space-x-3">
               <button className="btn-primary flex-1">Update Settings</button>
-              <button className="btn-primary flex-1">Update Settings</button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default AdminPanel
+export default AdminPanel;
