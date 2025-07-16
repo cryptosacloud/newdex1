@@ -232,6 +232,8 @@ export const useDexContract = () => {
   return {
     contracts,
     getTokenContract,
+    getAllPairs,
+    getPairReserves,
     swapExactTokensForTokens,
     addLiquidity,
     getAmountsOut,

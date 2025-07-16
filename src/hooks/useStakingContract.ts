@@ -98,7 +98,16 @@ export const useStakingContract = () => {
   }
 
   const getStakingStats = async () => {
-    if (!stakingContract) throw new Error('Staking contract not available')
+    if (!stakingContract) {
+      console.error('Staking contract not available')
+      return {
+        totalStaked: '0',
+        totalStakers: 0,
+        totalRewardsDistributed: '0',
+        pendingRewards: '0',
+        currentAPR: '0'
+      }
+    }
     
     const stats = await stakingContract.getStakingStats()
     return {

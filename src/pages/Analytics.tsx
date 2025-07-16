@@ -56,7 +56,10 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
 
   const loadAnalyticsData = async () => {
     try {
-      setLoading(true)
+      let pairs = []
+      if (contracts.factory) {
+        pairs = await getAllPairs()
+      }
       
       // Load DEX data
       let dexTVL = 0

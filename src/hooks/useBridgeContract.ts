@@ -184,7 +184,10 @@ export const useBridgeContract = () => {
     getTransaction,
     getUserTransactions,
     getAllTransactions: async (): Promise<string[]> => {
-      if (!bridgeContract) throw new Error('Bridge contract not available')
+      if (!bridgeContract) {
+        console.error('Bridge contract not available')
+        return []
+      }
       
       try {
         return await bridgeContract.getAllTransactions()
@@ -192,7 +195,7 @@ export const useBridgeContract = () => {
         console.error('Error getting all transactions:', error)
         return []
       }
-    },
+    }
     estimateBridgeFee,
     checkFeeRequirements
   }
