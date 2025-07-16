@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { Grid as BridgeIcon, ArrowRight, Clock, AlertCircle } from 'lucide-react'
 import { CHAIN_CONFIG, isTestnetChain } from '../constants/chainConfig'
 import { useWallet } from '../contexts/WalletContext'
-import { useBridgeContract, BridgeStatus } from '../hooks/useBridgeContract'
+import { useBridgeContract } from '../hooks/useBridgeContract'
 import { getTokensByChain } from '../constants/tokens'
+import TestnetBadge from '../components/TestnetBadge'
 
 interface BridgeProps {
   testnetMode: boolean;
@@ -11,7 +12,7 @@ interface BridgeProps {
 
 const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   const { isConnected, account, chainId } = useWallet()
-  const { lockTokens, burnAndBridge, getUserTransactions, estimateBridgeFee, checkFeeRequirements } = useBridgeContract()
+  const { lockTokens, burnAndBridge, getUserTransactions, estimateBridgeFee, checkFeeRequirements, getTransaction } = useBridgeContract()
   
   // Get chains based on testnet mode
   const availableChains = Object.entries(CHAIN_CONFIG)
@@ -28,9 +29,9 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   const [amount, setAmount] = useState('')
   const [destinationAddress, setDestinationAddress] = useState('')
   const [selectedToken, setSelectedToken] = useState('')
-  const [bridgeFee, setBridgeFee] = useState('0')
+  const [bridgeFee, setBridgeFee] = useState<string>('0')
   const [isBridging, setIsBridging] = useState(false)
-  const [userTransactions, setUserTransactions] = useState<string[]>([])
+  const [userTransactions, setUserTransactions] = useState<Array<{txId: string, status: string}>>([])
   const [feeWarning, setFeeWarning] = useState('')
 
   // Get available tokens for current chain
@@ -102,9 +103,24 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
     if (!account) return
     
     try {
-      // Get transactions without throwing errors
-      const txs = await getUserTransactions(account).catch(() => [])
-      setUserTransactions(txs || [])
+      const txIds = await getUserTransactions(account).catch(() => [])
+      
+      // Get transaction details for each txId
+      const txDetails = await Promise.all(
+        txIds.map(async (txId) => {
+          try {
+            const tx = await getTransaction(txId)
+            return {
+              txId,
+              status: ['Pending', 'Locked', 'Released', 'Completed', 'Failed'][tx.status] || 'Pending'
+            }
+          } catch (error) {
+            return { txId, status: 'Pending' }
+          }
+        })
+      )
+      
+      setUserTransactions(txDetails)
     } catch (error) {
       console.error('Error loading user transactions:', error)
       setUserTransactions([])
@@ -165,8 +181,9 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
     <div className="max-w-2xl mx-auto">
       <div className="card p-6 mb-6">
         <div className="flex items-center space-x-2 mb-6">
-          <BridgeIcon className="w-6 h-6" />
-          <h2 className="text-xl font-bold">Cross-Chain Bridge</h2>
+            <BridgeIcon className="w-6 h-6" />
+            <h2 className="text-xl font-bold">Cross-Chain Bridge</h2>
+            <TestnetBadge />
         </div>
 
         <div className="space-y-6">
@@ -301,20 +318,23 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
       <div className="card p-6">
         <h3 className="text-lg font-semibold mb-4">Bridge History</h3>
         <div className="space-y-3">
-          {userTransactions && userTransactions.length > 0 ? (
-            userTransactions.slice(0, 5).map((txId) => (
-              <div key={txId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          {userTransactions.length > 0 ? (
+            userTransactions.slice(0, 5).map((tx) => (
+              <div key={tx.txId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className={`w-3 h-3 rounded-full ${
+                    tx.status === 'Completed' ? 'bg-green-500' : 
+                    tx.status === 'Failed' ? 'bg-red-500' : 'bg-yellow-500'
+                  }`} />
                   <div>
-                    <p className="font-medium text-sm">{txId.slice(0, 10)}...</p>
+                    <p className="font-medium text-sm">{tx.txId.slice(0, 10)}...</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Bridge Transaction
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium">Pending</p>
+                  <p className="text-sm font-medium">{tx.status}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                     <Clock className="w-3 h-3 mr-1" />
                     Processing

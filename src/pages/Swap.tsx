@@ -5,6 +5,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { useDexContract } from '../hooks/useDexContract'
 import TokenSelector from '../components/TokenSelector'
 import TestnetBadge from '../components/TestnetBadge'
+import { ethers } from 'ethers'
 
 interface SwapProps {
   testnetMode: boolean;
@@ -36,13 +37,21 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
   const calculateOutputAmount = async () => {
     if (!fromToken || !toToken || !fromAmount || !contracts.router) return
     
+    if (parseFloat(fromAmount) <= 0) {
+      setToAmount('0')
+      setPriceImpact('0')
+      return
+    }
+    
     try {
       const path = [fromToken.address, toToken.address]
       const amounts = await getAmountsOut(fromAmount, path).catch(() => ['0', '0'])
       setToAmount(amounts[1] || '0')
       
       // Calculate price impact (simplified)
-      const impact = Math.abs((parseFloat(amounts[0] || '0') - parseFloat(amounts[1] || '0')) / parseFloat(amounts[0] || '1') * 100) || 0
+      const fromValue = parseFloat(amounts[0] || '0')
+      const toValue = parseFloat(amounts[1] || '0')
+      const impact = fromValue > 0 ? Math.abs((fromValue - toValue) / fromValue * 100) : 0
       setPriceImpact(impact.toFixed(2))
     } catch (error) {
       console.error('Error calculating output amount:', error)
@@ -102,12 +111,17 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
       return
     }
     
-    if (!fromToken || !contracts.router) return
+    if (!fromToken || !contracts.router) {
+      alert('Token or router not available')
+      return
+    }
     
     try {
       setIsSwapping(true)
-      await approveToken(fromToken.address, contracts.router.target as string, fromAmount)
+      const routerAddress = await contracts.router.getAddress()
+      await approveToken(fromToken.address, routerAddress, fromAmount)
       setNeedsApproval(false)
+      alert('Approval successful!')
     } catch (error) {
       console.error('Approval failed:', error)
       alert('Approval failed. Please try again.')
@@ -132,7 +146,13 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
       
       // Ensure we have valid addresses
       if (!fromToken?.address || !toToken?.address) {
-        throw new Error('Invalid token addresses')
+        alert('Invalid token addresses')
+        return
+      }
+      
+      if (parseFloat(fromAmount) <= 0 || parseFloat(toAmount) <= 0) {
+        alert('Invalid amount')
+        return
       }
       
       const path = [fromToken.address, toToken.address]
@@ -231,6 +251,7 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-gray-600 dark:text-gray-400">Transaction Fee</span>
               <span className="font-medium text-orange-600 dark:text-orange-400">$3 USDT</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">(Fixed fee)</span>
             </div>
             {parseFloat(priceImpact) > 5 && (
               <div className="flex items-center space-x-2 text-sm text-orange-600 dark:text-orange-400">

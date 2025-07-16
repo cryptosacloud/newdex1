@@ -3,7 +3,6 @@ import { Lock, Gift, TrendingUp, Users, DollarSign } from 'lucide-react'
 import { useWallet } from '../contexts/WalletContext'
 import { useStakingContract } from '../hooks/useStakingContract'
 import TestnetBadge from '../components/TestnetBadge'
-import NetworkSwitcher from '../components/NetworkSwitcher'
 
 interface StakeProps {
   testnetMode: boolean;
@@ -225,7 +224,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">Your Pending Rewards</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              ${parseFloat(userStake.pendingRewards).toFixed(2)} USDT
+              ${parseFloat(userStake.pendingRewards || '0').toFixed(2)} USDT
             </p>
           </div>
         </div>
@@ -254,7 +253,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
           <div className="flex items-center justify-between mb-4">
             <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
             <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {parseFloat(stakingStats.currentAPR).toFixed(1)}%
+              {parseFloat(stakingStats.currentAPR || '0').toFixed(1)}%
             </span>
           </div>
           <h3 className="font-semibold">Current APR</h3>
@@ -265,7 +264,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
           <div className="flex items-center justify-between mb-4">
             <Lock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             <span className="text-2xl font-bold">
-              {parseFloat(stakingStats.totalStaked).toLocaleString()}
+              {parseFloat(stakingStats.totalStaked || '0').toLocaleString()}
             </span>
           </div>
           <h3 className="font-semibold">Total Staked</h3>
@@ -275,7 +274,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <Users className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            <span className="text-2xl font-bold">{stakingStats.totalStakers}</span>
+            <span className="text-2xl font-bold">{stakingStats.totalStakers || 0}</span>
           </div>
           <h3 className="font-semibold">Total Stakers</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">Active Participants</p>
@@ -285,7 +284,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
           <div className="flex items-center justify-between mb-4">
             <Gift className="w-8 h-8 text-orange-600 dark:text-orange-400" />
             <span className="text-2xl font-bold">
-              ${parseFloat(stakingStats.totalRewardsDistributed).toFixed(0)}
+              ${parseFloat(stakingStats.totalRewardsDistributed || '0').toFixed(0)}
             </span>
           </div>
           <h3 className="font-semibold">Total Rewards</h3>
@@ -341,7 +340,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Staked Amount</p>
-                <p className="text-lg font-semibold">{parseFloat(userStake.amount).toLocaleString()} ESR</p>
+                <p className="text-lg font-semibold">{parseFloat(userStake.amount || '0').toLocaleString()} ESR</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Staked Date</p>
@@ -356,12 +355,12 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Pending Rewards</p>
                 <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                  ${parseFloat(userStake.pendingRewards).toFixed(2)}
+                  ${parseFloat(userStake.pendingRewards || '0').toFixed(2)}
                 </p>
               </div>
             </div>
 
-            {parseFloat(userStake.pendingRewards) > 0 && (
+            {parseFloat(userStake.pendingRewards || '0') > 0 && (
               <button
                 onClick={handleClaimRewards}
                 disabled={isClaiming}
@@ -371,7 +370,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
               </button>
             )}
 
-            {parseFloat(userStake.amount) > 0 && (
+            {parseFloat(userStake.amount || '0') > 0 && (
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

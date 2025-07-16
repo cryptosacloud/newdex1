@@ -19,7 +19,8 @@ export const useFarmingContract = () => {
       try {
         const addresses = getContractAddresses(chainId)
         if (!addresses?.farming) {
-          console.error('Farming contract address not found for chain:', chainId)
+          console.warn('Farming contract address not found for chain:', chainId)
+          setFarmingContract(null)
           return
         }
         
@@ -43,11 +44,11 @@ export const useFarmingContract = () => {
   const deposit = async (pid: number, amount: string) => {
     if (!farmingContract || !account) throw new Error('Contract not available')
     
-    try {
-      if (!chainId) throw new Error('Chain not connected')
-      const addresses = getContractAddresses(chainId)
-      if (!addresses?.farming) throw new Error('Farming contract address not found')
-  
+    if (!chainId) throw new Error('Chain not connected')
+    const addresses = getContractAddresses(chainId)
+    if (!addresses?.farming) throw new Error('Farming contract address not found')
+
+    try {  
       try {
         const poolInfo = await farmingContract.getPoolInfo(pid)
         const lpContract = await getLPContract(poolInfo.lpToken)
@@ -171,74 +172,69 @@ export const useFarmingContract = () => {
   const getFarmingStats = async () => {
     if (!farmingContract) throw new Error('Contract not available')
     
+    const defaultStats = {
+      totalPools: 0,
+      totalAllocPoint: 0,
+      esrPerSecond: '0',
+      totalValueLocked: '0'
+    }
+    
     try {
       // Check if the function exists before calling it
-      let stats;
-      if (farmingContract.getFarmingStats && typeof farmingContract.getFarmingStats === 'function') {
-        stats = await farmingContract.getFarmingStats();
-      } else {
-        console.warn('getFarmingStats function not available on farming contract');
-        
-      // Try to get pool length first
-        const poolLength = await farmingContract.poolLength().catch(() => BigInt(0));
-      
-      // If we can't get the farming stats directly, build them from other calls
-        let totalValueLocked = BigInt(0);
-        let totalAllocPoint = BigInt(0);
-      
-      // Try to get emission rate
-        const esrPerSecond = await farmingContract.esrPerSecond().catch(() => BigInt(0));
-      
-      // Try to get pools info if available
-        try {
-          const pools = await getAllPools();
-          totalAllocPoint = pools.allocPoints.reduce((sum, ap) => sum + BigInt(ap), BigInt(0));
-          totalValueLocked = pools.totalStaked.reduce(
-            (sum, ts) => {
-              try {
-                return sum + BigInt(ethers.parseEther(ts))
-              } catch (e) {
-                return sum
-              }
-            }, 
-            BigInt(0)
-          );
-        } catch (poolError) {
-          console.warn('Could not get pool information:', poolError);
+      try {
+        if (farmingContract.getFarmingStats && typeof farmingContract.getFarmingStats === 'function') {
+          const stats = await farmingContract.getFarmingStats();
+          return {
+            totalPools: Number(stats.totalPools || 0),
+            totalAllocPoint: Number(stats._totalAllocPoint || 0),
+            esrPerSecond: stats._esrPerSecond ? ethers.formatEther(stats._esrPerSecond) : '0',
+            totalValueLocked: stats.totalValueLocked ? ethers.formatEther(stats.totalValueLocked) : '0'
+          }
+        } else {
+          console.warn('getFarmingStats function not available on farming contract');
+          
+          // Try to get pool length first
+          const poolLength = await farmingContract.poolLength().catch(() => BigInt(0));
+          
+          // If we can't get the farming stats directly, build them from other calls
+          let totalValueLocked = BigInt(0);
+          let totalAllocPoint = BigInt(0);
+          
+          // Try to get emission rate
+          const esrPerSecond = await farmingContract.esrPerSecond().catch(() => BigInt(0));
+          
+          // Try to get pools info if available
+          try {
+            const pools = await getAllPools();
+            totalAllocPoint = pools.allocPoints.reduce((sum, ap) => sum + BigInt(ap), BigInt(0));
+            totalValueLocked = pools.totalStaked.reduce(
+              (sum, ts) => {
+                try {
+                  return sum + BigInt(ethers.parseEther(ts))
+                } catch (e) {
+                  return sum
+                }
+              }, 
+              BigInt(0)
+            );
+          } catch (poolError) {
+            console.warn('Could not get pool information:', poolError);
+          }
+          
+          return {
+            totalPools: Number(poolLength),
+            totalAllocPoint: Number(totalAllocPoint),
+            esrPerSecond: ethers.formatEther(esrPerSecond),
+            totalValueLocked: ethers.formatEther(totalValueLocked)
+          };
         }
-        
-        return {
-        totalPools: Number(poolLength),
-        totalAllocPoint: Number(totalAllocPoint),
-          esrPerSecond: ethers.formatEther(esrPerSecond),
-          totalValueLocked: ethers.formatEther(totalValueLocked)
-        };
-      }
-      
-      if (stats) {
-        return {
-          totalPools: Number(stats.totalPools || 0),
-          totalAllocPoint: Number(stats._totalAllocPoint || 0),
-          esrPerSecond: stats._esrPerSecond ? ethers.formatEther(stats._esrPerSecond) : '0',
-          totalValueLocked: stats.totalValueLocked ? ethers.formatEther(stats.totalValueLocked) : '0'
-        }
-      } else {
-        return {
-          totalPools: 0,
-          totalAllocPoint: 0,
-          esrPerSecond: '0',
-          totalValueLocked: '0'
-        }
+      } catch (error) {
+        console.error('Error fetching farming stats:', error);
+        return defaultStats;
       }
     } catch (error) {
       console.error('Error fetching farming stats:', error)
-      // Return default values if contract call fails
-      return {
-        totalPools: 0,
-        totalAllocPoint: 0,
-        esrPerSecond: '0',
-        totalValueLocked: '0'
-      }
+      return defaultStats;
     }
   }
 
@@ -293,8 +289,8 @@ export const useFarmingContract = () => {
   const massUpdatePools = async () => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    try {
-      const tx = await farmingContract.massUpdatePools()
+    try { 
+      const tx = await farmingContract.massUpdatePools() 
       return tx.wait()
     } catch (error) {
       console.error('Error updating pools:', error)
