@@ -426,11 +426,13 @@ const AdminPanel: React.FC = () => {
             </div>
             <div className="flex space-x-3">
               <button className="btn-primary flex-1">Update Settings</button>
+              <button className="btn-primary flex-1">Update Settings</button>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
   )
 }
 
