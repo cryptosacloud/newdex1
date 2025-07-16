@@ -61,12 +61,18 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       let totalPools = 0
       try {
         if (contracts.factory) {
-          const pairs = await getAllPairs()
+          const pairs = await getAllPairs().catch(() => [])
           totalPools = pairs.length
           
           for (const pairAddress of pairs.slice(0, 10)) { // Limit to prevent RPC overload
             try {
-              const reserves = await getPairReserves(pairAddress)
+              const reserves = await getPairReserves(pairAddress).catch(() => ({
+                reserve0: '0',
+                reserve1: '0',
+                token0: '',
+                token1: '',
+                totalSupply: '0'
+              }))
               dexTVL += parseFloat(reserves.reserve0) + parseFloat(reserves.reserve1)
             } catch (error) {
               console.error('Error loading pair reserves:', error)
@@ -125,7 +131,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       }
       try {
         if (isConnected) {
-          const bridgeTxs = await getAllTransactions().catch(err => {
+          const bridgeTxs = await getUserTransactions(account || '').catch(err => {
             console.warn('Could not load bridge transactions, using defaults', err);
             return [];
           });

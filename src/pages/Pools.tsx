@@ -60,12 +60,18 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
       const poolsData: Pool[] = []
       
       // Get all pairs from factory
-      const pairAddresses = await getAllPairs()
+      const pairAddresses = await getAllPairs().catch(() => [])
       
       for (let i = 0; i < Math.min(pairAddresses.length, 20); i++) {
         try {
           const pairAddress = pairAddresses[i]
-          const reserves = await getPairReserves(pairAddress)
+          const reserves = await getPairReserves(pairAddress).catch(() => ({
+            token0: ethers.ZeroAddress,
+            token1: ethers.ZeroAddress,
+            reserve0: '0',
+            reserve1: '0',
+            totalSupply: '0'
+          }))
           
           // Get token info
           const token0Info = availableTokens.find(t => t.address.toLowerCase() === reserves.token0.toLowerCase())
@@ -115,10 +121,10 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
     
     try {
       const userPools: Pool[] = []
-      
+
       for (const pool of pools) {
         try {
-          const lpBalance = await getTokenBalance(pool.pairAddress, account)
+          const lpBalance = await getTokenBalance(pool.pairAddress, account).catch(() => '0')
           if (parseFloat(lpBalance) > 0) {
             userPools.push({
               ...pool,
@@ -146,9 +152,12 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
       setIsAddingLiquidity(true)
       
       // Check if pair exists, create if not
-      const pairAddress = await getPairAddress(tokenA, tokenB)
+      const pairAddress = await getPairAddress(tokenA, tokenB).catch(() => ethers.ZeroAddress)
       if (pairAddress === '0x0000000000000000000000000000000000000000') {
-        await createPair(tokenA, tokenB)
+        await createPair(tokenA, tokenB).catch(error => {
+          console.error('Error creating pair:', error)
+          throw new Error('Failed to create pair')
+        })
       }
       
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20 minutes
@@ -177,7 +186,11 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
 
   const calculatePoolShare = (pool: Pool) => {
     if (parseFloat(pool.userLiquidity) === 0 || parseFloat(pool.totalSupply) === 0) return '0'
-    return ((parseFloat(pool.userLiquidity) / parseFloat(pool.totalSupply)) * 100).toFixed(4)
+    try {
+      return ((parseFloat(pool.userLiquidity) / parseFloat(pool.totalSupply)) * 100).toFixed(4)
+    } catch (error) {
+      return '0'
+    }
   }
 
   return (

@@ -67,7 +67,13 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
     if (!farmingContract) return
     
     try {
-      const poolData = await getAllPools()
+      const poolData = await getAllPools().catch(() => ({
+        lpTokens: [],
+        allocPoints: [],
+        totalStaked: [],
+        isActive: [],
+        names: []
+      }))
       const formattedPools: Pool[] = poolData.lpTokens.map((lpToken: string, index: number) => ({
         id: index,
         name: poolData.names[index],
@@ -88,7 +94,7 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
   const loadFarmingStats = async () => {
     if (!farmingContract) return
     
-    const stats = await getFarmingStats().catch(err => {
+    const stats = await getFarmingStats().catch((err) => {
       console.warn('Could not load farming stats, using defaults', err);
       return {
         totalPools: 0,
@@ -107,8 +113,8 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
     try {
       const updatedPools = await Promise.all(
         pools.map(async (pool) => {
-          const userInfo = await getUserInfo(pool.id, account)
-          const pending = await pendingESR(pool.id, account)
+          const userInfo = await getUserInfo(pool.id, account).catch(() => ({ amount: '0', rewardDebt: '0', stakedAt: 0, pendingRewards: '0' }))
+          const pending = await pendingESR(pool.id, account).catch(() => '0')
           
           return {
             ...pool,
@@ -128,7 +134,10 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
 
     try {
       setIsStaking(true)
-      await deposit(selectedPool.id, stakeAmount)
+      await deposit(selectedPool.id, stakeAmount).catch(error => {
+        console.error('Deposit error:', error)
+        throw new Error('Failed to stake LP tokens')
+      })
       alert('LP tokens staked successfully!')
       setStakeAmount('')
       setShowStakeModal(false)
@@ -146,7 +155,10 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
 
     try {
       setIsUnstaking(true)
-      await withdraw(selectedPool.id, unstakeAmount)
+      await withdraw(selectedPool.id, unstakeAmount).catch(error => {
+        console.error('Withdraw error:', error)
+        throw new Error('Failed to unstake LP tokens')
+      })
       alert('LP tokens unstaked successfully!')
       setUnstakeAmount('')
       setShowStakeModal(false)
@@ -162,7 +174,10 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
   const handleHarvest = async (poolId: number) => {
     try {
       setIsHarvesting(true)
-      await harvest(poolId)
+      await harvest(poolId).catch(error => {
+        console.error('Harvest error:', error)
+        throw new Error('Failed to harvest rewards')
+      })
       alert('Rewards harvested successfully!')
       loadUserData()
     } catch (error) {
@@ -176,7 +191,10 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
   const handleHarvestAll = async () => {
     try {
       setIsHarvesting(true)
-      await harvestAll()
+      await harvestAll().catch(error => {
+        console.error('Harvest all error:', error)
+        throw new Error('Failed to harvest all rewards')
+      })
       alert('All rewards harvested successfully!')
       loadUserData()
     } catch (error) {

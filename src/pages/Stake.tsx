@@ -52,7 +52,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   useEffect(() => {
     if (account) {
       loadStakeInfo()
-      loadStakingStats() 
+      loadStakingStats()
       checkFeeStatus()
     }
   }, [account])
@@ -61,7 +61,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
     try {
       if (!account) return
       
-      const info = await getStakeInfo(account).catch(err => {
+      const info = await getStakeInfo(account).catch((err) => {
         console.warn('Could not load stake info, using defaults', err);
         return {
           amount: '0',
@@ -80,7 +80,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
 
   const loadStakingStats = async () => {
     try {
-      const stats = await getStakingStats().catch(err => {
+      const stats = await getStakingStats().catch((err) => {
         console.warn('Could not load staking stats, using defaults', err);
         return {
           totalStaked: '0',
@@ -100,7 +100,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   const checkFeeStatus = async () => {
     try {
       if (account) {
-        const status = await checkFeeRequirements(account)
+        const status = await checkFeeRequirements(account).catch(() => ({ hasBalance: false, hasAllowance: false, balance: '0', allowance: '0' }))
         setFeeStatus(status)
       }
     } catch (error) {
@@ -122,7 +122,10 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
 
     try {
       setIsStaking(true)
-      await stakeESR(stakeAmount)
+      await stakeESR(stakeAmount).catch(error => {
+        console.error('Staking error:', error)
+        throw new Error('Failed to stake ESR')
+      })
       alert('ESR staked successfully!')
       setStakeAmount('')
       loadStakeInfo()
@@ -148,7 +151,10 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
 
     try {
       setIsUnstaking(true)
-      await unstakeESR(unstakeAmount)
+      await unstakeESR(unstakeAmount).catch(error => {
+        console.error('Unstaking error:', error)
+        throw new Error('Failed to unstake ESR')
+      })
       alert('ESR unstaked successfully!')
       setUnstakeAmount('')
       loadStakeInfo()
@@ -164,7 +170,10 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   const handleClaimRewards = async () => {
     try {
       setIsClaiming(true)
-      await claimAllRewards()
+      await claimAllRewards().catch(error => {
+        console.error('Claiming error:', error)
+        throw new Error('Failed to claim rewards')
+      })
       alert('Rewards claimed successfully!')
       loadStakeInfo()
     } catch (error) {

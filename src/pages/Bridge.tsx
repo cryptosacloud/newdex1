@@ -11,7 +11,7 @@ interface BridgeProps {
 
 const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   const { isConnected, account, chainId } = useWallet()
-  const { lockTokens, burnAndBridge, getUserTransactions, estimateBridgeFee, checkFeeRequirements, getAllTransactions } = useBridgeContract()
+  const { lockTokens, burnAndBridge, getUserTransactions, estimateBridgeFee, checkFeeRequirements } = useBridgeContract()
   
   // Get chains based on testnet mode
   const availableChains = Object.entries(CHAIN_CONFIG)
@@ -90,7 +90,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
     if (!selectedToken || !amount) return
     
     try {
-      const fee = await estimateBridgeFee(selectedToken, amount)
+      const fee = await estimateBridgeFee(selectedToken, amount).catch(() => '0')
       setBridgeFee(fee)
     } catch (error) {
       console.error('Error estimating fee:', error)
@@ -103,7 +103,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
     
     try {
       // Get transactions without throwing errors
-      const txs = await getUserTransactions(account)
+      const txs = await getUserTransactions(account).catch(() => [])
       setUserTransactions(txs || [])
     } catch (error) {
       console.error('Error loading user transactions:', error)
@@ -130,17 +130,23 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
     try {
       setIsBridging(true)
       const destination = destinationAddress || account!
-      
+
       // Check if we need to lock or burn tokens based on token origin
       const token = availableTokens.find(t => t.address === selectedToken)
       const isNativeToken = token?.chainId === chainId
       
       if (isNativeToken) {
         // Lock tokens on source chain
-        await lockTokens(selectedToken, amount, toChain.id, destination)
+        await lockTokens(selectedToken, amount, toChain.id, destination).catch(error => {
+          console.error('Lock tokens failed:', error)
+          throw new Error('Failed to lock tokens')
+        })
       } else {
         // Burn wrapped tokens
-        await burnAndBridge(selectedToken, amount, toChain.id, destination)
+        await burnAndBridge(selectedToken, amount, toChain.id, destination).catch(error => {
+          console.error('Burn and bridge failed:', error)
+          throw new Error('Failed to burn tokens')
+        })
       }
       
       alert('Bridge transaction initiated! Please wait for confirmation on the destination chain.')
@@ -295,7 +301,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
       <div className="card p-6">
         <h3 className="text-lg font-semibold mb-4">Bridge History</h3>
         <div className="space-y-3">
-          {userTransactions.length > 0 ? (
+          {userTransactions && userTransactions.length > 0 ? (
             userTransactions.slice(0, 5).map((txId) => (
               <div key={txId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="flex items-center space-x-3">

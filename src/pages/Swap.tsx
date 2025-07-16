@@ -14,7 +14,7 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
   const { isConnected, account, chainId } = useWallet()
   const { 
     swapExactTokensForTokens, 
-    getAmountsOut, 
+    getAmountsOut,
     approveToken, 
     getTokenAllowance,
     checkFeeRequirements,
@@ -38,11 +38,11 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
     
     try {
       const path = [fromToken.address, toToken.address]
-      const amounts = await getAmountsOut(fromAmount, path)
-      setToAmount(amounts[1])
+      const amounts = await getAmountsOut(fromAmount, path).catch(() => ['0', '0'])
+      setToAmount(amounts[1] || '0')
       
       // Calculate price impact (simplified)
-      const impact = Math.abs((parseFloat(amounts[0]) - parseFloat(amounts[1])) / parseFloat(amounts[0]) * 100)
+      const impact = Math.abs((parseFloat(amounts[0] || '0') - parseFloat(amounts[1] || '0')) / parseFloat(amounts[0] || '1') * 100) || 0
       setPriceImpact(impact.toFixed(2))
     } catch (error) {
       console.error('Error calculating output amount:', error)
@@ -54,8 +54,9 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
     if (!fromToken || !fromAmount || !contracts.router || !account) return
     
     try {
-      const allowance = await getTokenAllowance(fromToken.address, contracts.router.target as string)
-      setNeedsApproval(parseFloat(allowance) < parseFloat(fromAmount))
+      const routerAddress = contracts.router.target as string
+      const allowance = await getTokenAllowance(fromToken.address, routerAddress).catch(() => '0')
+      setNeedsApproval(parseFloat(allowance || '0') < parseFloat(fromAmount))
     } catch (error) {
       console.error('Error checking approval:', error)
       setNeedsApproval(true)
@@ -66,7 +67,10 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
     if (!account) return
     
     try {
-      const feeStatus = await checkFeeRequirements(account)
+      const feeStatus = await checkFeeRequirements(account).catch(() => ({
+        hasBalance: false,
+        hasAllowance: false
+      }))
       if (!feeStatus.hasBalance || !feeStatus.hasAllowance) {
         setFeeWarning('You need $3 USDT balance and approval for swap fees')
       } else {
@@ -125,6 +129,12 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
     
     try {
       setIsSwapping(true)
+      
+      // Ensure we have valid addresses
+      if (!fromToken?.address || !toToken?.address) {
+        throw new Error('Invalid token addresses')
+      }
+      
       const path = [fromToken.address, toToken.address]
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20 minutes
       const minAmountOut = (parseFloat(toAmount) * (100 - parseFloat(slippage)) / 100).toString()
@@ -219,7 +229,7 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
               <span className="font-medium">{slippage}%</span>
             </div>
             <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-gray-600 dark:text-gray-400">Swap Fee</span>
+              <span className="text-gray-600 dark:text-gray-400">Transaction Fee</span>
               <span className="font-medium text-orange-600 dark:text-orange-400">$3 USDT</span>
             </div>
             {parseFloat(priceImpact) > 5 && (
