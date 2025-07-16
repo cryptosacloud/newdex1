@@ -210,11 +210,12 @@ export const useStakingContract = () => {
       } 
     } catch (error) {
       console.error('Error in checkFeeRequirements:', error)
-    return {
-      hasBalance: requirements.hasBalance,
-      hasAllowance: requirements.hasAllowance,
-      balance: requirements.balance.toString(),
-      allowance: requirements.allowance.toString()
+      return {
+        hasBalance: false,
+        hasAllowance: false,
+        balance: '0',
+        allowance: '0'
+      }
     }
   }
 
