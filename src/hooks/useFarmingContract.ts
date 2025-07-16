@@ -120,12 +120,23 @@ export const useFarmingContract = () => {
   const getFarmingStats = async () => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const stats = await farmingContract.getFarmingStats()
-    return {
-      totalPools: Number(stats.totalPools),
-      totalAllocPoint: Number(stats._totalAllocPoint),
-      esrPerSecond: ethers.formatEther(stats._esrPerSecond),
-      totalValueLocked: ethers.formatEther(stats.totalValueLocked)
+    try {
+      const stats = await farmingContract.getFarmingStats()
+      return {
+        totalPools: Number(stats.totalPools),
+        totalAllocPoint: Number(stats._totalAllocPoint),
+        esrPerSecond: ethers.formatEther(stats._esrPerSecond),
+        totalValueLocked: ethers.formatEther(stats.totalValueLocked)
+      }
+    } catch (error) {
+      console.error('Error fetching farming stats:', error)
+      // Return default values if contract call fails
+      return {
+        totalPools: 0,
+        totalAllocPoint: 0,
+        esrPerSecond: '0',
+        totalValueLocked: '0'
+      }
     }
   }
 
