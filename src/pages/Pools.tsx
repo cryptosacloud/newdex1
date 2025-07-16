@@ -40,6 +40,21 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
   const [isAddingLiquidity, setIsAddingLiquidity] = useState(false)
 
   const availableTokens = chainId ? getTokensByChain(chainId) : []
+  
+  // Define an empty pool object for consistent default values
+  const emptyPool = {
+    id: '',
+    token0: { symbol: '', name: '', address: '' },
+    token1: { symbol: '', name: '', address: '' },
+    pairAddress: '',
+    tvl: '0',
+    apr: '0',
+    volume24h: '0',
+    userLiquidity: '0',
+    reserve0: '0',
+    reserve1: '0',
+    totalSupply: '0'
+  }
 
   useEffect(() => {
     if (contracts.factory && chainId) {
@@ -54,19 +69,9 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
   }, [account, contracts.factory])
 
   const loadPools = async () => {
-    if (!contracts.factory) return
-    
-    const emptyPool = {
-      token0: { symbol: '', name: '', address: '' },
-      token1: { symbol: '', name: '', address: '' },
-      pairAddress: '',
-      tvl: '0',
-      apr: '0',
-      volume24h: '0',
-      userLiquidity: '0',
-      reserve0: '0',
-      reserve1: '0',
-      totalSupply: '0'
+    if (!contracts.factory) {
+      console.warn('Factory contract not available for loadPools');
+      return;
     }
     
     try {
@@ -92,8 +97,8 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
           const token1Info = availableTokens.find(t => t.address.toLowerCase() === reserves.token1.toLowerCase()) 
           
           // Skip if we can't find token info
-          if (!token0Info || !token1Info) {
-            console.warn(`Skipping pair ${pairAddress} - couldn't find token info`)
+          if (!token0Info || !token1Info || !token0Info.symbol || !token1Info.symbol) {
+            console.warn(`Skipping pair ${pairAddress} - couldn't find token info or symbol`)
             continue
           }
           
@@ -207,7 +212,10 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
   const calculatePoolShare = (pool: Pool) => {
     if (parseFloat(pool.userLiquidity) === 0 || parseFloat(pool.totalSupply) === 0) return '0'
     try {
-      return ((parseFloat(pool.userLiquidity) / parseFloat(pool.totalSupply)) * 100).toFixed(4) 
+      const userLiquidity = parseFloat(pool.userLiquidity || '0');
+      const totalSupply = parseFloat(pool.totalSupply || '0');
+      if (totalSupply === 0) return '0';
+      return ((userLiquidity / totalSupply) * 100).toFixed(4);
     } catch (error) {
       return '0'
     }
@@ -299,10 +307,10 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {pool.token0.symbol ? pool.token0.symbol[0] : '?'}
+                        {pool.token0.symbol && pool.token0.symbol.length > 0 ? pool.token0.symbol[0] : '?'}
                       </div>
                       <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold -ml-2">
-                        {pool.token1.symbol ? pool.token1.symbol[0] : '?'}
+                        {pool.token1.symbol && pool.token1.symbol.length > 0 ? pool.token1.symbol[0] : '?'}
                       </div>
                     </div>
                     <div>
@@ -365,10 +373,10 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {pool.token0.symbol ? pool.token0.symbol[0] : '?'}
+                        {pool.token0.symbol && pool.token0.symbol.length > 0 ? pool.token0.symbol[0] : '?'}
                       </div>
                       <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold -ml-2">
-                        {pool.token1.symbol ? pool.token1.symbol[0] : '?'}
+                        {pool.token1.symbol && pool.token1.symbol.length > 0 ? pool.token1.symbol[0] : '?'}
                       </div>
                     </div>
                     <div>
