@@ -51,6 +51,7 @@ export const useStakingContract = () => {
 
   const stakeESR = async (amount: string) => {
     if (!stakingContract || !esrContract || !account) {
+      console.warn('Contracts not available for stakeESR')
       throw new Error('Contracts not available')
     }
 
@@ -71,21 +72,36 @@ export const useStakingContract = () => {
   }
 
   const unstakeESR = async (amount: string) => {
-    if (!stakingContract) throw new Error('Staking contract not available')
+    if (!stakingContract) {
+      console.warn('Staking contract not available for unstakeESR')
+      throw new Error('Staking contract not available')
+    }
     
     const tx = await stakingContract.unstake(ethers.parseEther(amount))
     return tx.wait()
   }
 
   const claimAllRewards = async () => {
-    if (!stakingContract) throw new Error('Staking contract not available')
+    if (!stakingContract) {
+      console.warn('Staking contract not available for claimAllRewards')
+      throw new Error('Staking contract not available')
+    }
     
     const tx = await stakingContract.claimAllRewards()
     return tx.wait()
   }
 
   const getStakeInfo = async (userAddress: string) => {
-    if (!stakingContract) throw new Error('Staking contract not available')
+    if (!stakingContract) {
+      console.warn('Staking contract not available for getStakeInfo')
+      return {
+        amount: '0',
+        stakedAt: 0,
+        lockEndsAt: 0,
+        canUnstake: false,
+        pendingRewards: '0'
+      }
+    }
     
     const info = await stakingContract.getStakeInfo(userAddress)
     return {
@@ -99,7 +115,7 @@ export const useStakingContract = () => {
 
   const getStakingStats = async () => {
     if (!stakingContract) {
-      console.error('Staking contract not available')
+      console.warn('Staking contract not available for getStakingStats')
       return { 
         totalStaked: '0',
         totalStakers: 0,
@@ -131,7 +147,15 @@ export const useStakingContract = () => {
   }
 
   const checkFeeRequirements = async (userAddress: string) => {
-    if (!stakingContract) throw new Error('Staking contract not available')
+    if (!stakingContract) {
+      console.warn('Staking contract not available for checkFeeRequirements')
+      return {
+        hasBalance: false,
+        hasAllowance: false,
+        balance: '0',
+        allowance: '0'
+      }
+    }
     
     const requirements = await stakingContract.checkFeeRequirements(userAddress)
     return {
@@ -143,7 +167,10 @@ export const useStakingContract = () => {
   }
 
   const distributeRewards = async () => {
-    if (!stakingContract) throw new Error('Staking contract not available')
+    if (!stakingContract) {
+      console.warn('Staking contract not available for distributeRewards')
+      throw new Error('Staking contract not available')
+    }
     
     try {
       const tx = await stakingContract.distributeRewards()

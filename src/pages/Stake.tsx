@@ -99,10 +99,18 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
 
   const checkFeeStatus = async () => {
     try {
-      const status = await checkFeeRequirements(account!)
-      setFeeStatus(status)
+      if (account) {
+        const status = await checkFeeRequirements(account)
+        setFeeStatus(status)
+      }
     } catch (error) {
       console.error('Error checking fee status:', error)
+      setFeeStatus({
+        hasBalance: false,
+        hasAllowance: false,
+        balance: '0',
+        allowance: '0'
+      })
     }
   }
 
