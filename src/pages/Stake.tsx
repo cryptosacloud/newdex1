@@ -25,7 +25,13 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   const [isUnstaking, setIsUnstaking] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
   
-  const [userStake, setUserStake] = useState({
+  const [userStake, setUserStake] = useState<{
+    amount: string;
+    stakedAt: number;
+    lockEndsAt: number;
+    canUnstake: boolean;
+    pendingRewards: string;
+  }>({
     amount: '0',
     stakedAt: 0,
     lockEndsAt: 0,
@@ -33,7 +39,13 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
     pendingRewards: '0'
   })
   
-  const [stakingStats, setStakingStats] = useState({
+  const [stakingStats, setStakingStats] = useState<{
+    totalStaked: string;
+    totalStakers: number;
+    totalRewardsDistributed: string;
+    pendingRewards: string;
+    currentAPR: string;
+  }>({
     totalStaked: '0',
     totalStakers: 0,
     totalRewardsDistributed: '0',
@@ -41,7 +53,12 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
     currentAPR: '0'
   })
 
-  const [feeStatus, setFeeStatus] = useState({
+  const [feeStatus, setFeeStatus] = useState<{
+    hasBalance: boolean;
+    hasAllowance: boolean;
+    balance: string;
+    allowance: string;
+  }>({
     hasBalance: false,
     hasAllowance: false,
     balance: '0',
@@ -59,8 +76,8 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   const loadStakeInfo = async () => {
     try {
       if (!account) return
-      
-      const info = await getStakeInfo(account).catch((err) => {
+
+      const info = await getStakeInfo(account).catch((err: any) => {
         console.warn('Could not load stake info, using defaults', err);
         return {
           amount: '0',
@@ -79,7 +96,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
 
   const loadStakingStats = async () => {
     try {
-      const stats = await getStakingStats().catch((err) => {
+      const stats = await getStakingStats().catch((err: any) => {
         console.warn('Could not load staking stats, using defaults', err);
         return {
           totalStaked: '0',
@@ -99,7 +116,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   const checkFeeStatus = async () => {
     try {
       if (account) {
-        const status = await checkFeeRequirements(account).catch(() => ({ hasBalance: false, hasAllowance: false, balance: '0', allowance: '0' }))
+        const status = await checkFeeRequirements(account).catch(() => ({ hasBalance: false, hasAllowance: false, balance: '0', allowance: '0' }));
         setFeeStatus(status)
       }
     } catch (error) {
@@ -116,7 +133,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   const handleStake = async () => {
     if (!stakeAmount || parseFloat(stakeAmount) < 100) {
       alert('Minimum stake is 100 ESR')
-      return
+      return;
     }
 
     try {
@@ -124,7 +141,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
       await stakeESR(stakeAmount).catch(error => {
         console.error('Staking error:', error)
         throw new Error('Failed to stake ESR')
-      })
+      });
       alert('ESR staked successfully!')
       setStakeAmount('')
       loadStakeInfo()
@@ -140,12 +157,12 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   const handleUnstake = async () => {
     if (!unstakeAmount || parseFloat(unstakeAmount) <= 0) {
       alert('Please enter a valid amount')
-      return
+      return;
     }
 
     if (!userStake.canUnstake) {
       alert('Stake is still locked or you have no active stake')
-      return
+      return;
     }
 
     try {
@@ -153,7 +170,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
       await unstakeESR(unstakeAmount).catch(error => {
         console.error('Unstaking error:', error)
         throw new Error('Failed to unstake ESR')
-      })
+      });
       alert('ESR unstaked successfully!')
       setUnstakeAmount('')
       loadStakeInfo()
@@ -172,7 +189,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
       await claimAllRewards().catch(error => {
         console.error('Claiming error:', error)
         throw new Error('Failed to claim rewards')
-      })
+      });
       alert('Rewards claimed successfully!')
       loadStakeInfo()
     } catch (error) {
@@ -184,12 +201,12 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   }
 
   const formatTime = (timestamp: number) => {
-    if (timestamp === 0) return 'N/A'
+    if (!timestamp || timestamp === 0) return 'N/A'
     return new Date(timestamp * 1000).toLocaleDateString()
   }
 
   const formatTimeRemaining = (lockEndsAt: number) => {
-    if (lockEndsAt === 0) return 'N/A'
+    if (!lockEndsAt || lockEndsAt === 0) return 'N/A'
     const now = Date.now() / 1000
     const remaining = lockEndsAt - now
     if (remaining <= 0) return 'Unlocked'
@@ -240,7 +257,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
               <p className="text-sm">
                 You need $3 USDT balance and approval for swap/bridge fees. 
                 Balance: ${(parseFloat(feeStatus.balance) / 1e6).toFixed(2)} | 
-                Allowance: ${(parseFloat(feeStatus.allowance) / 1e6).toFixed(2)}
+                Allowance: ${(parseFloat(feeStatus?.allowance || '0') / 1e6).toFixed(2)}
               </p>
             </div>
           </div>
@@ -253,7 +270,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
           <div className="flex items-center justify-between mb-4">
             <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
             <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {parseFloat(stakingStats.currentAPR || '0').toFixed(1)}%
+              {parseFloat(stakingStats?.currentAPR || '0').toFixed(1)}%
             </span>
           </div>
           <h3 className="font-semibold">Current APR</h3>
@@ -264,7 +281,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
           <div className="flex items-center justify-between mb-4">
             <Lock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             <span className="text-2xl font-bold">
-              {parseFloat(stakingStats.totalStaked || '0').toLocaleString()}
+              {parseFloat(stakingStats?.totalStaked || '0').toLocaleString()}
             </span>
           </div>
           <h3 className="font-semibold">Total Staked</h3>
@@ -274,7 +291,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <Users className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            <span className="text-2xl font-bold">{stakingStats.totalStakers || 0}</span>
+            <span className="text-2xl font-bold">{stakingStats?.totalStakers || 0}</span>
           </div>
           <h3 className="font-semibold">Total Stakers</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">Active Participants</p>
@@ -284,7 +301,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
           <div className="flex items-center justify-between mb-4">
             <Gift className="w-8 h-8 text-orange-600 dark:text-orange-400" />
             <span className="text-2xl font-bold">
-              ${parseFloat(stakingStats.totalRewardsDistributed || '0').toFixed(0)}
+              ${parseFloat(stakingStats?.totalRewardsDistributed || '0').toFixed(0)}
             </span>
           </div>
           <h3 className="font-semibold">Total Rewards</h3>
@@ -340,7 +357,7 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Staked Amount</p>
-                <p className="text-lg font-semibold">{parseFloat(userStake.amount || '0').toLocaleString()} ESR</p>
+                <p className="text-lg font-semibold">{parseFloat(userStake?.amount || '0').toLocaleString()} ESR</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Staked Date</p>
@@ -348,8 +365,8 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Lock Status</p>
-                <p className={`text-lg font-semibold ${userStake.canUnstake ? 'text-green-600' : 'text-orange-600'}`}>
-                  {userStake.canUnstake ? 'Unlocked' : formatTimeRemaining(userStake.lockEndsAt)}
+                <p className={`text-lg font-semibold ${userStake?.canUnstake ? 'text-green-600' : 'text-orange-600'}`}>
+                  {userStake?.canUnstake ? 'Unlocked' : formatTimeRemaining(userStake?.lockEndsAt || 0)}
                 </p>
               </div>
               <div>
