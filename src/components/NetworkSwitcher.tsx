@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 import { useChainManagement } from '../hooks/useChainManagement.js';
 import { CHAIN_CONFIG, isTestnetChain, getChainName } from '../constants/chainConfig';
-import { AlertTriangle, Check, X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 
 const NetworkSwitcher = ({ testnetMode = false, preferredChainId = null }) => {
   const { isConnected, chainId } = useWallet();
@@ -13,25 +13,31 @@ const NetworkSwitcher = ({ testnetMode = false, preferredChainId = null }) => {
   // Check if current chain matches the testnet mode
   const isCorrectNetworkType = chainId ? isTestnetChain(chainId) === testnetMode : false;
 
-  // Get available chains based on testnet mode
-  const availableChains = Object.entries(CHAIN_CONFIG)
-    .filter(([_, config]) => config.isTestnet === testnetMode)
-    .map(([id, _]) => parseInt(id));
-
   useEffect(() => {
     // When wallet connects, check if we need to switch networks
     if (isConnected && !isCorrectNetworkType) {
-      ensureSupportedChain(testnetMode, preferredChainId).catch(error => {
-        console.error('Failed to ensure supported chain:', error);
-        // Don't show an error message here as the UI already shows a network mismatch message
-        // that allows the user to manually switch
-      });
+      try {
+        ensureSupportedChain(testnetMode, preferredChainId).catch(error => {
+          console.error('Failed to ensure supported chain:', error);
+          // Don't show an error message here as the UI already shows a network mismatch message
+          // that allows the user to manually switch
+        });
+      } catch (error) {
+        console.error('Error in network switching effect:', error);
+      }
     }
   }, [isConnected, isCorrectNetworkType, testnetMode, preferredChainId, ensureSupportedChain]);
 
   const handleSwitchNetwork = async (targetChainId) => {
-    const success = await switchNetwork(targetChainId);
-    if (!success) {
+    try {
+      const success = await switchNetwork(targetChainId);
+      if (!success) {
+        setModalChainId(targetChainId);
+        setShowModal(true);
+      }
+    } catch (error) {
+      console.error('Error switching network:', error);
+      // Show modal with manual instructions
       setModalChainId(targetChainId);
       setShowModal(true);
     }
@@ -90,7 +96,7 @@ const NetworkSwitcher = ({ testnetMode = false, preferredChainId = null }) => {
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
                 <h4 className="font-medium mb-2">Network Details:</h4>
                 <ul className="space-y-2 text-sm">
-                  <li><strong>Network Name:</strong> {CHAIN_CONFIG[modalChainId]?.chainName}</li>
+                  <li><strong>Network Name:</strong> {modalChainId && CHAIN_CONFIG[modalChainId]?.chainName}</li>
                   <li><strong>Chain ID:</strong> {CHAIN_CONFIG[modalChainId]?.chainId}</li>
                   <li><strong>Currency Symbol:</strong> {CHAIN_CONFIG[modalChainId]?.nativeCurrency.symbol}</li>
                   <li><strong>RPC URL:</strong> {CHAIN_CONFIG[modalChainId]?.rpcUrls[0]}</li>
@@ -107,8 +113,9 @@ const NetworkSwitcher = ({ testnetMode = false, preferredChainId = null }) => {
               <button
                 onClick={() => handleSwitchNetwork(modalChainId)}
                 className="btn-primary flex-1"
+                disabled={isProcessing}
               >
-                Try Again
+                {isProcessing ? 'Switching...' : 'Try Again'}
               </button>
               <button
                 onClick={closeModal}

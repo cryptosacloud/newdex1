@@ -2,24 +2,43 @@ import React, { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useWallet } from '../../contexts/WalletContext'
 import { CHAIN_CONFIG, getChainName, isTestnetChain } from '../../constants/chainConfig'
+import { useState, useEffect } from 'react'
 
 const ChainSelector: React.FC = () => {
   const { chainId, switchChain } = useWallet()
   const [isOpen, setIsOpen] = useState(false)
   const [showTestnets, setShowTestnets] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Get current chain info
   const currentChainConfig = chainId ? CHAIN_CONFIG[chainId] : null
   const currentIsTestnet = chainId ? isTestnetChain(chainId) : false
 
+  // Clear error message when dropdown closes
+  useEffect(() => {
+    if (!isOpen) {
+      setErrorMessage(null);
+    }
+  }, [isOpen]);
+
   const handleChainSelect = async (targetChainId: number) => {
     try {
-      await switchChain(targetChainId)
+      setIsProcessing(true);
+      setErrorMessage(null);
+      
+      const success = await switchChain(targetChainId);
+      if (!success) {
+        setErrorMessage(`Failed to switch to ${CHAIN_CONFIG[targetChainId]?.chainName || 'network'}. Please try adding the network manually in your wallet.`);
+      } else {
+        setIsOpen(false);
+      }
     } catch (error) {
-      console.error('Failed to switch chain:', error)
-      alert('Failed to switch network. Please try again or add the network manually in your wallet.')
+      console.error('Failed to switch chain:', error);
+      setErrorMessage('Failed to switch network. Please try again or add the network manually in your wallet.');
+    } finally {
+      setIsProcessing(false);
     }
-    setIsOpen(false)
   }
 
   // Get chains based on testnet toggle
@@ -56,7 +75,7 @@ const ChainSelector: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-2 rounded-lg transition-colors"
+        className={`flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-2 rounded-lg transition-colors ${isProcessing ? 'opacity-75 cursor-not-allowed' : ''}`}
       >
         {currentChainConfig ? (
           <>
@@ -77,7 +96,7 @@ const ChainSelector: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 min-w-[200px]">
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 min-w-[250px]">
           <div className="p-2 border-b border-gray-200 dark:border-gray-700">
             <label className="flex items-center text-sm">
               <input 
@@ -89,6 +108,15 @@ const ChainSelector: React.FC = () => {
               Show Testnets
             </label>
           </div>
+
+          {errorMessage && (
+            <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="text-sm text-red-600 dark:text-red-400 p-2 bg-red-100 dark:bg-red-900/20 rounded">
+                {errorMessage}
+              </div>
+            </div>
+          )}
+          
           
           <div className="max-h-60 overflow-y-auto">
             {displayedChains.map(chain => (
@@ -96,6 +124,8 @@ const ChainSelector: React.FC = () => {
                 key={chain.id}
                 onClick={() => handleChainSelect(chain.id)}
                 className={`w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                  isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+                } ${
                   chainId === chain.id ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
                 }`}
               >
@@ -110,7 +140,7 @@ const ChainSelector: React.FC = () => {
                 )}
               </button>
             ))}
-            {chainId && !CHAIN_CONFIG[chainId] && (
+            {chainId && CHAIN_CONFIG && !CHAIN_CONFIG[chainId] && (
               <div className="px-3 py-2 text-gray-500 dark:text-gray-400">
                 Unknown Chain ({chainId})
               </div>
@@ -122,7 +152,7 @@ const ChainSelector: React.FC = () => {
       {isOpen && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
+          onClick={() => !isProcessing && setIsOpen(false)}
         />
       )}
     </div>
