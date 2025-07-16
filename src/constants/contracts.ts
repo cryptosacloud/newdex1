@@ -142,14 +142,69 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
 }
 
 export const getContractAddresses = (chainId: number): ContractAddresses | null => {
-  return CONTRACT_ADDRESSES[chainId] || null
+  const addresses = CONTRACT_ADDRESSES[chainId]
+  if (!addresses) return null
+  
+  // Check if any of the required contracts are deployed
+  const requiredContracts = ['factory', 'router', 'staking', 'bridge']
+  const hasDeployedContracts = requiredContracts.some(contract => 
+    addresses[contract as keyof ContractAddresses] !== '0x0000000000000000000000000000000000000000'
+  )
+  
+  return hasDeployedContracts ? addresses : null
 }
 
 export const isContractDeployed = (chainId: number): boolean => {
   const addresses = CONTRACT_ADDRESSES[chainId]
   if (!addresses) return false
   
-  // Check if any contract address is not the zero address
+  // Check if any required contract address is not the zero address
+  const requiredContracts = ['factory', 'router', 'staking', 'bridge']
+  return requiredContracts.some(contract => 
+    addresses[contract as keyof ContractAddresses] !== '0x0000000000000000000000000000000000000000'
+  )
+}
+
+// For development, we'll consider localhost contracts as deployed
+export const isLocalhost = (chainId: number): boolean => {
+  return chainId === 1337 || chainId === 31337
+}
+
+// Check if a specific contract is deployed
+export const isContractAvailable = (chainId: number, contractName: keyof ContractAddresses): boolean => {
+  const addresses = CONTRACT_ADDRESSES[chainId]
+  if (!addresses) return false
+  
+  return addresses[contractName] !== '0x0000000000000000000000000000000000000000'
+}
+
+// Get a specific contract address
+export const getContractAddress = (chainId: number, contractName: keyof ContractAddresses): string | null => {
+  const addresses = CONTRACT_ADDRESSES[chainId]
+  if (!addresses) return null
+  
+  const address = addresses[contractName]
+  return address !== '0x0000000000000000000000000000000000000000' ? address : null
+}
+
+// For development, we'll use the localhost contracts
+export const getDevContractAddresses = (): ContractAddresses => {
+  return CONTRACT_ADDRESSES[1337] || {
+    factory: '0x0000000000000000000000000000000000000000',
+    router: '0x0000000000000000000000000000000000000000',
+    bridge: '0x0000000000000000000000000000000000000000',
+    staking: '0x0000000000000000000000000000000000000000',
+    farming: '0x0000000000000000000000000000000000000000',
+    dxbToken: '0x0000000000000000000000000000000000000000',
+    weth: '0x0000000000000000000000000000000000000000'
+  }
+}
+
+// Check if any contract is deployed on the current chain
+export const hasAnyContractDeployed = (chainId: number): boolean => {
+  const addresses = CONTRACT_ADDRESSES[chainId]
+  if (!addresses) return false
+  
   return Object.values(addresses).some(address => 
     address !== '0x0000000000000000000000000000000000000000'
   )

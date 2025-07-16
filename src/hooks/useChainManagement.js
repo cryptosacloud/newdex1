@@ -120,7 +120,10 @@ export const useChainManagement = () => {
 
     try {
       // Get current chain ID
-      const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+      const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' }).catch(error => {
+        console.error('Failed to get chain ID:', error);
+        throw error;
+      });
       const currentChainId = parseInt(chainIdHex, 16);
       
       // Check if current chain is supported and matches the mode (testnet/mainnet)

@@ -13,7 +13,12 @@ const TestnetModeToggle = ({ testnetMode, setTestnetMode }) => {
     
     // If wallet is connected, try to switch to appropriate chain type
     if (isConnected) {
-      await ensureCorrectChainType(newMode);
+      try {
+        await ensureCorrectChainType(newMode);
+      } catch (error) {
+        console.error('Failed to switch network type:', error);
+        // Continue anyway, the NetworkSwitcher will show a message to the user
+      }
     }
   };
 

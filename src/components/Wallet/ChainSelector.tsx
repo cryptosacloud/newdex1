@@ -13,7 +13,12 @@ const ChainSelector: React.FC = () => {
   const currentIsTestnet = chainId ? isTestnetChain(chainId) : false
 
   const handleChainSelect = async (targetChainId: number) => {
-    await switchChain(targetChainId)
+    try {
+      await switchChain(targetChainId)
+    } catch (error) {
+      console.error('Failed to switch chain:', error)
+      alert('Failed to switch network. Please try again or add the network manually in your wallet.')
+    }
     setIsOpen(false)
   }
 

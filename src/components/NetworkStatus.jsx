@@ -9,8 +9,8 @@ const NetworkStatus = () => {
     return null;
   }
   
-  const networkName = getChainName(chainId);
-  const isTestnet = isTestnetChain(chainId);
+  const networkName = getChainName(chainId) || 'Unknown Network';
+  const isTestnet = isTestnetChain(chainId) || false;
   
   return (
     <div className={`px-3 py-1 rounded-full text-sm font-medium ${

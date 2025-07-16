@@ -21,7 +21,11 @@ const NetworkSwitcher = ({ testnetMode = false, preferredChainId = null }) => {
   useEffect(() => {
     // When wallet connects, check if we need to switch networks
     if (isConnected && !isCorrectNetworkType) {
-      ensureSupportedChain(testnetMode, preferredChainId);
+      ensureSupportedChain(testnetMode, preferredChainId).catch(error => {
+        console.error('Failed to ensure supported chain:', error);
+        // Don't show an error message here as the UI already shows a network mismatch message
+        // that allows the user to manually switch
+      });
     }
   }, [isConnected, isCorrectNetworkType, testnetMode, preferredChainId, ensureSupportedChain]);
 

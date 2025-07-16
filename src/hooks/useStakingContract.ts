@@ -52,43 +52,63 @@ export const useStakingContract = () => {
   const stakeESR = async (amount: string) => {
     if (!stakingContract || !esrContract || !account) {
       console.warn('Contracts not available for stakeESR')
-      throw new Error('Contracts not available')
+      throw new Error('Staking contract not available')
     }
 
-    const addresses = getContractAddresses(chainId!)
-    if (!addresses) throw new Error('Contract addresses not found')
-
-    const amountWei = ethers.parseEther(amount)
-    
-    // Check allowance
-    const allowance = await esrContract.allowance(account, addresses.staking)
-    if (allowance < amountWei) {
-      const approveTx = await esrContract.approve(addresses.staking, amountWei)
-      await approveTx.wait()
+    try {
+      const addresses = getContractAddresses(chainId!)
+      if (!addresses) throw new Error('Contract addresses not found')
+  
+      const amountWei = ethers.parseEther(amount)
+      
+      // Check allowance
+      try {
+        const allowance = await esrContract.allowance(account, addresses.staking)
+        if (allowance < amountWei) {
+          const approveTx = await esrContract.approve(addresses.staking, amountWei)
+          await approveTx.wait()
+        }
+  
+        const tx = await stakingContract.stake(amountWei)
+        return tx.wait()
+      } catch (error) {
+        console.error('Error in stakeESR:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('Error preparing for stakeESR:', error)
+      throw error
     }
-
-    const tx = await stakingContract.stake(amountWei)
-    return tx.wait()
   }
 
   const unstakeESR = async (amount: string) => {
     if (!stakingContract) {
       console.warn('Staking contract not available for unstakeESR')
-      throw new Error('Staking contract not available')
+      throw new Error('Staking contract not available for unstaking')
     }
     
-    const tx = await stakingContract.unstake(ethers.parseEther(amount))
-    return tx.wait()
+    try {
+      const tx = await stakingContract.unstake(ethers.parseEther(amount))
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in unstakeESR:', error)
+      throw error
+    }
   }
 
   const claimAllRewards = async () => {
     if (!stakingContract) {
       console.warn('Staking contract not available for claimAllRewards')
-      throw new Error('Staking contract not available')
+      throw new Error('Staking contract not available for claiming rewards')
     }
     
-    const tx = await stakingContract.claimAllRewards()
-    return tx.wait()
+    try {
+      const tx = await stakingContract.claimAllRewards()
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in claimAllRewards:', error)
+      throw error
+    }
   }
 
   const getStakeInfo = async (userAddress: string) => {
@@ -103,7 +123,17 @@ export const useStakingContract = () => {
       }
     }
     
-    const info = await stakingContract.getStakeInfo(userAddress)
+    try {
+      const info = await stakingContract.getStakeInfo(userAddress)
+      return {
+        amount: ethers.formatEther(info.amount),
+        stakedAt: Number(info.stakedAt),
+        lockEndsAt: Number(info.lockEndsAt),
+        canUnstake: info.canUnstake,
+        pendingRewards: ethers.formatUnits(info.pendingRewards, 6) // USDT has 6 decimals
+      }
+    } catch (error) {
+      console.error('Error in getStakeInfo:', error)
     return {
       amount: ethers.formatEther(info.amount),
       stakedAt: Number(info.stakedAt),
@@ -116,7 +146,7 @@ export const useStakingContract = () => {
   const getStakingStats = async () => {
     if (!stakingContract) {
       console.warn('Staking contract not available for getStakingStats')
-      return { 
+      return {
         totalStaked: '0',
         totalStakers: 0,
         totalRewardsDistributed: '0',
@@ -125,17 +155,29 @@ export const useStakingContract = () => {
       }
     }
     
-    const stats = await stakingContract.getStakingStats()
     try {
-      return {
-        totalStaked: ethers.formatEther(stats._totalStaked),
-        totalStakers: Number(stats._totalStakers),
-        totalRewardsDistributed: ethers.formatUnits(stats._totalRewardsDistributed, 6),
-        pendingRewards: ethers.formatUnits(stats._pendingRewards, 6),
-        currentAPR: ethers.formatEther(stats._currentAPR)
+      const stats = await stakingContract.getStakingStats()
+      
+      try {
+        return {
+          totalStaked: ethers.formatEther(stats._totalStaked),
+          totalStakers: Number(stats._totalStakers),
+          totalRewardsDistributed: ethers.formatUnits(stats._totalRewardsDistributed, 6),
+          pendingRewards: ethers.formatUnits(stats._pendingRewards, 6),
+          currentAPR: ethers.formatEther(stats._currentAPR)
+        }
+      } catch (error) {
+        console.error('Error parsing staking stats:', error)
+        return {
+          totalStaked: '0',
+          totalStakers: 0,
+          totalRewardsDistributed: '0',
+          pendingRewards: '0',
+          currentAPR: '0'
+        }
       }
     } catch (error) {
-      console.error('Error parsing staking stats:', error)
+      console.error('Error in getStakingStats:', error)
       return {
         totalStaked: '0',
         totalStakers: 0,
@@ -157,7 +199,16 @@ export const useStakingContract = () => {
       }
     }
     
-    const requirements = await stakingContract.checkFeeRequirements(userAddress)
+    try {
+      const requirements = await stakingContract.checkFeeRequirements(userAddress)
+      return {
+        hasBalance: requirements.hasBalance,
+        hasAllowance: requirements.hasAllowance,
+        balance: requirements.balance.toString(),
+        allowance: requirements.allowance.toString()
+      }
+    } catch (error) {
+      console.error('Error in checkFeeRequirements:', error)
     return {
       hasBalance: requirements.hasBalance,
       hasAllowance: requirements.hasAllowance,
@@ -169,7 +220,7 @@ export const useStakingContract = () => {
   const distributeRewards = async () => {
     if (!stakingContract) {
       console.warn('Staking contract not available for distributeRewards')
-      throw new Error('Staking contract not available')
+      throw new Error('Staking contract not available for distributing rewards')
     }
     
     try {

@@ -94,7 +94,7 @@ export const useDexContract = () => {
           signer
         )
         
-        const [reserve0, reserve1] = await pairContract.getReserves()
+        const [reserve0, reserve1] = await pairContract.getReserves().catch(() => [BigInt(0), BigInt(0)])
         const token0 = await pairContract.token0()
         const token1 = await pairContract.token1()
         const totalSupply = await pairContract.totalSupply()
@@ -175,61 +175,91 @@ export const useDexContract = () => {
   const getAmountsOut = async (amountIn: string, path: string[]) => {
     if (!contracts.router) throw new Error('Router not available')
     
-    const amounts = await contracts.router.getAmountsOut(
-      ethers.parseEther(amountIn),
-      path
-    )
-    
-    return amounts.map((amount: bigint) => ethers.formatEther(amount))
+    try {
+      const amounts = await contracts.router.getAmountsOut(
+        ethers.parseEther(amountIn),
+        path
+      )
+      
+      return amounts.map((amount: bigint) => ethers.formatEther(amount))
+    } catch (error) {
+      console.error('Error getting amounts out:', error)
+      return [amountIn, '0'] // Return input amount and 0 for output
+    }
   }
 
   const getPairAddress = async (tokenA: string, tokenB: string) => {
     if (!contracts.factory) throw new Error('Factory not available')
     
-    return await contracts.factory.getPair(tokenA, tokenB)
+    try {
+      return await contracts.factory.getPair(tokenA, tokenB)
+    } catch (error) {
+      console.error('Error getting pair address:', error)
+      return ethers.ZeroAddress
+    }
   }
 
   const createPair = async (tokenA: string, tokenB: string) => {
     if (!contracts.factory) throw new Error('Factory not available')
     
-    const tx = await contracts.factory.createPair(tokenA, tokenB)
-    return tx.wait()
+    try {
+      const tx = await contracts.factory.createPair(tokenA, tokenB)
+      return tx.wait()
+    } catch (error) {
+      console.error('Error creating pair:', error)
+      throw error
+    }
   }
 
   const getTokenBalance = async (tokenAddress: string, userAddress?: string) => {
-    const token = await getTokenContract(tokenAddress)
-    if (!token) throw new Error('Token contract not available')
-    
-    const address = userAddress || account
-    if (!address) throw new Error('No address provided')
-    
-    const balance = await token.balanceOf(address)
-    return ethers.formatEther(balance)
+    try {
+      const token = await getTokenContract(tokenAddress)
+      if (!token) throw new Error('Token contract not available')
+      
+      const address = userAddress || account
+      if (!address) throw new Error('No address provided')
+      
+      const balance = await token.balanceOf(address)
+      return ethers.formatEther(balance)
+    } catch (error) {
+      console.error('Error getting token balance:', error)
+      return '0'
+    }
   }
 
   const approveToken = async (tokenAddress: string, spenderAddress: string, amount: string) => {
-    const token = await getTokenContract(tokenAddress)
-    if (!token) throw new Error('Token contract not available')
-    
-    const tx = await token.approve(spenderAddress, ethers.parseEther(amount))
-    return tx.wait()
+    try {
+      const token = await getTokenContract(tokenAddress)
+      if (!token) throw new Error('Token contract not available')
+      
+      const tx = await token.approve(spenderAddress, ethers.parseEther(amount))
+      return tx.wait()
+    } catch (error) {
+      console.error('Error approving token:', error)
+      throw error
+    }
   }
 
   const getTokenAllowance = async (tokenAddress: string, spenderAddress: string) => {
-    const token = await getTokenContract(tokenAddress)
-    if (!token || !account) throw new Error('Token contract or account not available')
-    
-    const allowance = await token.allowance(account, spenderAddress)
-    return ethers.formatEther(allowance)
+    try {
+      const token = await getTokenContract(tokenAddress)
+      if (!token || !account) throw new Error('Token contract or account not available')
+      
+      const allowance = await token.allowance(account, spenderAddress)
+      return ethers.formatEther(allowance)
+    } catch (error) {
+      console.error('Error getting token allowance:', error)
+      return '0'
+    }
   }
 
   const checkFeeRequirements = async (userAddress?: string) => {
-    if (!contracts.router) throw new Error('Router not available')
-    
-    const address = userAddress || account
-    if (!address) throw new Error('No address provided')
-    
     try {
+      if (!contracts.router) throw new Error('Router not available')
+      
+      const address = userAddress || account
+      if (!address) throw new Error('No address provided')
+      
       const requirements = await contracts.router.checkFeeRequirements(address)
       return {
         hasBalance: requirements.hasBalance,

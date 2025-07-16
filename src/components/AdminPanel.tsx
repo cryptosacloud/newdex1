@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Shield, Plus, Settings, Users, Gift, AlertTriangle, AlertCircle } from 'lucide-react'
+import { Shield, Plus, Settings, Users, Gift, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useBridgeContract } from '../hooks/useBridgeContract'
@@ -41,13 +41,17 @@ const AdminPanel: React.FC = () => {
   // Check if current account is contract owner
   useEffect(() => {
     const checkOwnership = async () => {
-      if (!bridgeContract || !account) {
+      if (!bridgeContract || !account || !contractsDeployed) {
         setIsOwner(false)
         return
       }
 
       try {
-        const owner = await bridgeContract.owner()
+        const owner = await bridgeContract.owner().catch(() => null)
+        if (!owner) {
+          setIsOwner(false)
+          return
+        }
         setIsOwner(owner.toLowerCase() === account.toLowerCase())
       } catch (error) {
         console.error('Error checking ownership:', error)

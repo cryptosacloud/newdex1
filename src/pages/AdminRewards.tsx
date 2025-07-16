@@ -97,7 +97,13 @@ const AdminRewards: React.FC = () => {
 
   const loadPools = async () => {
     try {
-      const poolData = await getAllPools()
+      const poolData = await getAllPools().catch(() => ({
+        lpTokens: [],
+        allocPoints: [],
+        totalStaked: [],
+        isActive: [],
+        names: []
+      }))
       const formattedPools = poolData.lpTokens.map((lpToken: string, index: number) => ({
         id: index,
         name: poolData.names[index],
@@ -115,7 +121,12 @@ const AdminRewards: React.FC = () => {
 
   const loadFarmingStats = async () => {
     try {
-      const stats = await getFarmingStats();
+      const stats = await getFarmingStats().catch(() => ({
+        totalPools: 0,
+        totalAllocPoint: 0,
+        esrPerSecond: '0',
+        totalValueLocked: '0'
+      }));
       setFarmingStats(stats);
     } catch (error) {
       console.error('Error loading farming stats:', error)
@@ -124,8 +135,20 @@ const AdminRewards: React.FC = () => {
 
   const loadRewardStats = async () => {
     try {
-      const stakingStats = await getStakingStats()
-      const farmingStats = await getFarmingStats()
+      const stakingStats = await getStakingStats().catch(() => ({
+        totalStaked: '0',
+        totalStakers: 0,
+        totalRewardsDistributed: '0',
+        pendingRewards: '0',
+        currentAPR: '0'
+      }))
+      
+      const farmingStats = await getFarmingStats().catch(() => ({
+        totalPools: 0,
+        totalAllocPoint: 0,
+        esrPerSecond: '0',
+        totalValueLocked: '0'
+      }))
       
       setRewardStats({
         totalESRDistributed: stakingStats.totalRewardsDistributed,
@@ -160,7 +183,10 @@ const AdminRewards: React.FC = () => {
 
     try {
       setIsLoading(true)
-      await addPool(newPool.lpToken, parseInt(newPool.allocPoint), newPool.name)
+      await addPool(newPool.lpToken, parseInt(newPool.allocPoint), newPool.name).catch(error => {
+        console.error('Add pool error:', error)
+        throw new Error('Failed to add pool')
+      })
       alert('Pool added successfully!')
       setNewPool({ lpToken: '', allocPoint: '', name: '' })
       setShowAddPool(false)
@@ -178,7 +204,10 @@ const AdminRewards: React.FC = () => {
 
     try {
       setIsLoading(true)
-      await setPool(selectedPool.id, selectedPool.allocPoint)
+      await setPool(selectedPool.id, selectedPool.allocPoint).catch(error => {
+        console.error('Edit pool error:', error)
+        throw new Error('Failed to update pool')
+      })
       alert('Pool updated successfully!')
       setShowEditPool(false)
       setSelectedPool(null)
@@ -194,7 +223,10 @@ const AdminRewards: React.FC = () => {
   const handleTogglePool = async (pool: Pool) => {
     try {
       setIsLoading(true)
-      await setPoolStatus(pool.id, !pool.isActive)
+      await setPoolStatus(pool.id, !pool.isActive).catch(error => {
+        console.error('Toggle pool error:', error)
+        throw new Error('Failed to toggle pool status')
+      })
       alert(`Pool ${pool.isActive ? 'paused' : 'activated'} successfully!`)
       loadData()
     } catch (error) {
@@ -210,7 +242,10 @@ const AdminRewards: React.FC = () => {
 
     try {
       setIsLoading(true)
-      await setEmissionRate(newEmissionRate)
+      await setEmissionRate(newEmissionRate).catch(error => {
+        console.error('Update emission rate error:', error)
+        throw new Error('Failed to update emission rate')
+      })
       alert('Emission rate updated successfully!')
       setNewEmissionRate('')
       loadData()
@@ -225,7 +260,10 @@ const AdminRewards: React.FC = () => {
   const handleMassUpdate = async () => {
     try {
       setIsLoading(true)
-      await massUpdatePools()
+      await massUpdatePools().catch(error => {
+        console.error('Mass update error:', error)
+        throw new Error('Failed to update pools')
+      })
       alert('All pools updated successfully!')
       loadData()
     } catch (error) {
@@ -239,7 +277,10 @@ const AdminRewards: React.FC = () => {
   const handleDistributeRewards = async () => {
     try {
       setIsLoading(true)
-      await distributeRewards()
+      await distributeRewards().catch(error => {
+        console.error('Distribute rewards error:', error)
+        throw new Error('Failed to distribute rewards')
+      })
       alert('Rewards distributed successfully!')
       loadData()
     } catch (error) {

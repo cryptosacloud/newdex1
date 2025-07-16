@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { WalletProvider } from './contexts/WalletContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/Layout/Layout'
@@ -16,6 +16,19 @@ import AdminPanel from './components/AdminPanel'
 
 function App() {
   const [testnetMode, setTestnetMode] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Global error handler
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Global error:', event.error);
+      // We don't set the error state here to avoid re-rendering the entire app
+      // Instead, we'll let the individual components handle their errors
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   return (
     <ThemeProvider>

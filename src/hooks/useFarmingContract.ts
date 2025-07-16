@@ -43,77 +43,128 @@ export const useFarmingContract = () => {
   const deposit = async (pid: number, amount: string) => {
     if (!farmingContract || !account) throw new Error('Contract not available')
     
-    if (!chainId) throw new Error('Chain not connected')
-    const addresses = getContractAddresses(chainId)
-    if (!addresses?.farming) throw new Error('Farming contract address not found')
-
-    const poolInfo = await farmingContract.getPoolInfo(pid)
-    const lpContract = await getLPContract(poolInfo.lpToken)
-    if (!lpContract) throw new Error('LP contract not available')
-
-    const amountWei = ethers.parseEther(amount)
-    
-    // Check allowance
-    const allowance = await lpContract.allowance(account, addresses.farming)
-    if (allowance < amountWei) {
-      const approveTx = await lpContract.approve(addresses.farming, amountWei)
-      await approveTx.wait()
+    try {
+      if (!chainId) throw new Error('Chain not connected')
+      const addresses = getContractAddresses(chainId)
+      if (!addresses?.farming) throw new Error('Farming contract address not found')
+  
+      try {
+        const poolInfo = await farmingContract.getPoolInfo(pid)
+        const lpContract = await getLPContract(poolInfo.lpToken)
+        if (!lpContract) throw new Error('LP contract not available')
+  
+        const amountWei = ethers.parseEther(amount)
+        
+        // Check allowance
+        const allowance = await lpContract.allowance(account, addresses.farming)
+        if (allowance < amountWei) {
+          const approveTx = await lpContract.approve(addresses.farming, amountWei)
+          await approveTx.wait()
+        }
+  
+        const tx = await farmingContract.deposit(pid, amountWei)
+        return tx.wait()
+      } catch (error) {
+        console.error('Error in deposit:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('Farming contract not available for deposit:', error)
+      throw error
     }
-
-    const tx = await farmingContract.deposit(pid, amountWei)
-    return tx.wait()
   }
 
   const withdraw = async (pid: number, amount: string) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const tx = await farmingContract.withdraw(pid, ethers.parseEther(amount))
-    return tx.wait()
+    try {
+      const tx = await farmingContract.withdraw(pid, ethers.parseEther(amount))
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in withdraw:', error)
+      throw error
+    }
   }
 
   const harvest = async (pid: number) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const tx = await farmingContract.harvest(pid)
-    return tx.wait()
+    try {
+      const tx = await farmingContract.harvest(pid)
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in harvest:', error)
+      throw error
+    }
   }
 
   const harvestAll = async () => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const tx = await farmingContract.harvestAll()
-    return tx.wait()
+    try {
+      const tx = await farmingContract.harvestAll()
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in harvestAll:', error)
+      throw error
+    }
   }
 
   const pendingESR = async (pid: number, userAddress: string) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const pending = await farmingContract.pendingESR(pid, userAddress)
-    return ethers.formatEther(pending)
+    try {
+      const pending = await farmingContract.pendingESR(pid, userAddress)
+      return ethers.formatEther(pending)
+    } catch (error) {
+      console.error('Error in pendingESR:', error)
+      return '0'
+    }
   }
 
   const getUserInfo = async (pid: number, userAddress: string) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const info = await farmingContract.getUserInfo(pid, userAddress)
-    return {
-      amount: ethers.formatEther(info.amount),
-      rewardDebt: ethers.formatEther(info.rewardDebt),
-      stakedAt: Number(info.stakedAt),
-      pendingRewards: ethers.formatEther(info.pendingRewards)
+    try {
+      const info = await farmingContract.getUserInfo(pid, userAddress)
+      return {
+        amount: ethers.formatEther(info.amount),
+        rewardDebt: ethers.formatEther(info.rewardDebt),
+        stakedAt: Number(info.stakedAt),
+        pendingRewards: ethers.formatEther(info.pendingRewards)
+      }
+    } catch (error) {
+      console.error('Error in getUserInfo:', error)
+      return {
+        amount: '0',
+        rewardDebt: '0',
+        stakedAt: 0,
+        pendingRewards: '0'
+      }
     }
   }
 
   const getAllPools = async () => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const pools = await farmingContract.getAllPools()
-    return {
-      lpTokens: pools.lpTokens,
-      allocPoints: pools.allocPoints.map((ap: bigint) => Number(ap)),
-      totalStaked: pools.totalStaked.map((ts: bigint) => ethers.formatEther(ts)),
-      isActive: pools.isActive,
-      names: pools.names
+    try {
+      const pools = await farmingContract.getAllPools()
+      return {
+        lpTokens: pools.lpTokens || [],
+        allocPoints: (pools.allocPoints || []).map((ap: bigint) => Number(ap)),
+        totalStaked: (pools.totalStaked || []).map((ts: bigint) => ethers.formatEther(ts)),
+        isActive: pools.isActive || [],
+        names: pools.names || []
+      }
+    } catch (error) {
+      console.error('Error in getAllPools:', error)
+      return {
+        lpTokens: [],
+        allocPoints: [],
+        totalStaked: [],
+        isActive: [],
+        names: []
+      }
     }
   }
 
@@ -123,23 +174,61 @@ export const useFarmingContract = () => {
     try {
       // Check if the function exists before calling it
       let stats;
-      if (typeof farmingContract.getFarmingStats === 'function') {
+      if (farmingContract.getFarmingStats && typeof farmingContract.getFarmingStats === 'function') {
         stats = await farmingContract.getFarmingStats();
       } else {
         console.warn('getFarmingStats function not available on farming contract');
+        
+      // Try to get pool length first
+        const poolLength = await farmingContract.poolLength().catch(() => BigInt(0));
+      
+      // If we can't get the farming stats directly, build them from other calls
+        let totalValueLocked = BigInt(0);
+        let totalAllocPoint = BigInt(0);
+      
+      // Try to get emission rate
+        const esrPerSecond = await farmingContract.esrPerSecond().catch(() => BigInt(0));
+      
+      // Try to get pools info if available
+        try {
+          const pools = await getAllPools();
+          totalAllocPoint = pools.allocPoints.reduce((sum, ap) => sum + BigInt(ap), BigInt(0));
+          totalValueLocked = pools.totalStaked.reduce(
+            (sum, ts) => {
+              try {
+                return sum + BigInt(ethers.parseEther(ts))
+              } catch (e) {
+                return sum
+              }
+            }, 
+            BigInt(0)
+          );
+        } catch (poolError) {
+          console.warn('Could not get pool information:', poolError);
+        }
+        
+        return {
+        totalPools: Number(poolLength),
+        totalAllocPoint: Number(totalAllocPoint),
+          esrPerSecond: ethers.formatEther(esrPerSecond),
+          totalValueLocked: ethers.formatEther(totalValueLocked)
+        };
+      }
+      
+      if (stats) {
+        return {
+          totalPools: Number(stats.totalPools || 0),
+          totalAllocPoint: Number(stats._totalAllocPoint || 0),
+          esrPerSecond: stats._esrPerSecond ? ethers.formatEther(stats._esrPerSecond) : '0',
+          totalValueLocked: stats.totalValueLocked ? ethers.formatEther(stats.totalValueLocked) : '0'
+        }
+      } else {
         return {
           totalPools: 0,
           totalAllocPoint: 0,
           esrPerSecond: '0',
           totalValueLocked: '0'
-        };
-      }
-      
-      return {
-        totalPools: Number(stats.totalPools),
-        totalAllocPoint: Number(stats._totalAllocPoint),
-        esrPerSecond: ethers.formatEther(stats._esrPerSecond),
-        totalValueLocked: ethers.formatEther(stats.totalValueLocked)
+        }
       }
     } catch (error) {
       console.error('Error fetching farming stats:', error)
@@ -153,46 +242,59 @@ export const useFarmingContract = () => {
     }
   }
 
-      // Try to get pool length first
-      const poolLength = await farmingContract.poolLength().catch(() => BigInt(0));
-      
-      // If we can't get the farming stats directly, build them from other calls
-      let totalValueLocked = BigInt(0);
-      let totalAllocPoint = BigInt(0);
-      
-      // Try to get emission rate
-      const esrPerSecond = await farmingContract.esrPerSecond().catch(() => BigInt(0));
-      
-      // Try to get pools info if available
-      try {
-        const pools = await getAllPools();
-        totalAllocPoint = pools.allocPoints.reduce((sum, ap) => sum + BigInt(ap), BigInt(0));
-        totalValueLocked = pools.totalStaked.reduce(
-          (sum, ts) => sum + BigInt(ethers.parseEther(ts)), 
-          BigInt(0)
-        );
-      } catch (poolError) {
-        console.warn('Could not get pool information:', poolError);
-    return tx.wait()
+  const addPool = async (lpToken: string, allocPoint: number, name: string) => {
+    if (!farmingContract) throw new Error('Contract not available')
+    
+    try {
+      const tx = await farmingContract.addPool(lpToken, allocPoint, name, true)
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in addPool:', error)
+      throw error
+    }
+  }
+
+  const setPool = async (pid: number, allocPoint: number) => {
+    if (!farmingContract) throw new Error('Contract not available')
+    
+    try {
+      const tx = await farmingContract.setPool(pid, allocPoint, true)
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in setPool:', error)
+      throw error
+    }
   }
 
   const setPoolStatus = async (pid: number, isActive: boolean) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const tx = await farmingContract.setPoolStatus(pid, isActive)
-    return tx.wait()
+    try {
+      const tx = await farmingContract.setPoolStatus(pid, isActive)
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in setPoolStatus:', error)
+      throw error
+    }
   }
 
   const setEmissionRate = async (esrPerSecond: string) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const tx = await farmingContract.setEmissionRate(ethers.parseEther(esrPerSecond))
-    return tx.wait()
+    try {
+      const tx = await farmingContract.setEmissionRate(ethers.parseEther(esrPerSecond))
+      return tx.wait()
+    } catch (error) {
+      console.error('Error in setEmissionRate:', error)
+      throw error
+    }
   }
 
   const massUpdatePools = async () => {
-        totalPools: Number(poolLength),
-        totalAllocPoint: Number(totalAllocPoint),
+    if (!farmingContract) throw new Error('Contract not available')
+    
+    try {
+      const tx = await farmingContract.massUpdatePools()
       return {
         totalValueLocked: ethers.formatEther(totalValueLocked)
       return tx.wait()

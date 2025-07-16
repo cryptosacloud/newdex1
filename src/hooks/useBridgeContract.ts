@@ -60,31 +60,42 @@ export const useBridgeContract = () => {
     tokenAddress: string,
     amount: string,
     targetChain: number,
-    targetAddress?: string
+    targetAddress: string = ''
   ) => {
-    if (!bridgeContract || !account) throw new Error('Bridge contract not available')
-    
-    const destination = targetAddress || account
-    
-    // First approve the token
-    const signer = await provider!.getSigner()
-    const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
-    const amountWei = ethers.parseEther(amount)
-    
-    const allowance = await tokenContract.allowance(account, await bridgeContract.getAddress())
-    if (allowance < amountWei) {
-      const approveTx = await tokenContract.approve(await bridgeContract.getAddress(), amountWei)
-      await approveTx.wait()
+    try {
+      if (!bridgeContract || !account) throw new Error('Bridge contract not available')
+      
+      const destination = targetAddress || account
+      
+      // First approve the token
+      const signer = await provider!.getSigner()
+      const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer)
+      const amountWei = ethers.parseEther(amount)
+      
+      try {
+        const bridgeAddress = await bridgeContract.getAddress()
+        const allowance = await tokenContract.allowance(account, bridgeAddress)
+        if (allowance < amountWei) {
+          const approveTx = await tokenContract.approve(bridgeAddress, amountWei)
+          await approveTx.wait()
+        }
+        
+        const tx = await bridgeContract.lockTokens(
+          tokenAddress,
+          amountWei,
+          targetChain,
+          destination
+        )
+        
+        return tx.wait()
+      } catch (error) {
+        console.error('Error in lockTokens:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('Bridge contract not available for lockTokens:', error)
+      throw error
     }
-    
-    const tx = await bridgeContract.lockTokens(
-      tokenAddress,
-      amountWei,
-      targetChain,
-      destination
-    )
-    
-    return tx.wait()
   }
 
   const burnAndBridge = async (
@@ -93,17 +104,27 @@ export const useBridgeContract = () => {
     targetChain: number,
     targetAddress: string = ''
   ) => {
-    if (!bridgeContract || !account) throw new Error('Bridge contract not available')
-    
-    const destination = targetAddress || account
-    const tx = await bridgeContract.burnAndBridge(
-      tokenAddress,
-      ethers.parseEther(amount),
-      targetChain,
-      destination
-    )
-    
-    return tx.wait()
+    try {
+      if (!bridgeContract || !account) throw new Error('Bridge contract not available')
+      
+      const destination = targetAddress || account
+      try {
+        const tx = await bridgeContract.burnAndBridge(
+          tokenAddress,
+          ethers.parseEther(amount),
+          targetChain,
+          destination
+        )
+        
+        return tx.wait()
+      } catch (error) {
+        console.error('Error in burnAndBridge:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('Bridge contract not available for burnAndBridge:', error)
+      throw error
+    }
   }
 
   const getTransaction = async (txId: string): Promise<BridgeTransaction> => {
@@ -126,16 +147,16 @@ export const useBridgeContract = () => {
     try {
       const tx = await bridgeContract.getTransaction(txId)
       return {
-        txId: tx.txId,
-        user: tx.user,
-        token: tx.token,
-        amount: ethers.formatEther(tx.amount),
-        fee: ethers.formatEther(tx.fee),
-        sourceChain: Number(tx.sourceChain),
-        targetChain: Number(tx.targetChain),
-        targetAddress: tx.targetAddress,
-        timestamp: Number(tx.timestamp),
-        status: tx.status as BridgeStatus
+        txId: tx.txId || txId,
+        user: tx.user || '',
+        token: tx.token || '',
+        amount: tx.amount ? ethers.formatEther(tx.amount) : '0',
+        fee: tx.fee ? ethers.formatEther(tx.fee) : '0',
+        sourceChain: tx.sourceChain ? Number(tx.sourceChain) : 0,
+        targetChain: tx.targetChain ? Number(tx.targetChain) : 0,
+        targetAddress: tx.targetAddress || '',
+        timestamp: tx.timestamp ? Number(tx.timestamp) : 0,
+        status: (tx.status || 0) as BridgeStatus
       }
     } catch (error) {
       console.error('Error getting transaction details:', error)
@@ -162,12 +183,12 @@ export const useBridgeContract = () => {
     
     const address = userAddress || account
     if (!address) {
-      console.warn('No address provided for getUserTransactions')
-      return [] 
+      return []
     }
     
     try {
-      return await bridgeContract.getUserTransactions(address)
+      const txs = await bridgeContract.getUserTransactions(address)
+      return txs || []
     } catch (error) {
       console.error('Error getting user transactions:', error)
       return []
@@ -182,7 +203,7 @@ export const useBridgeContract = () => {
     
     try {
       // Check if the function exists before calling it
-      if (typeof bridgeContract.getAllTransactions === 'function') {
+      if (bridgeContract.getAllTransactions && typeof bridgeContract.getAllTransactions === 'function') {
         return await bridgeContract.getAllTransactions()
       } else {
         console.warn('getAllTransactions function not available on bridge contract')
@@ -196,14 +217,20 @@ export const useBridgeContract = () => {
 
   const estimateBridgeFee = async (tokenAddress: string, amount: string) => {
     if (!bridgeContract) throw new Error('Bridge contract not available')
-    
+
     try {
-      const tokenInfo = await bridgeContract.supportedTokens(tokenAddress)
-      const amountBN = ethers.parseEther(amount)
-      const feeBN = (amountBN * BigInt(tokenInfo.fee)) / BigInt(10000)
-      return ethers.formatEther(feeBN)
+      try {
+        const tokenInfo = await bridgeContract.supportedTokens(tokenAddress)
+        const amountBN = ethers.parseEther(amount)
+        const feeBN = (amountBN * BigInt(tokenInfo.fee || 250)) / BigInt(10000)
+        return ethers.formatEther(feeBN)
+      } catch (error) {
+        console.error('Error getting token info:', error)
+        // Default to 2.5% fee if we can't get the actual fee
+        return ethers.formatEther((ethers.parseEther(amount) * BigInt(250)) / BigInt(10000))
+      }
     } catch (error) {
-      console.error('Error estimating bridge fee:', error)
+      console.error('Bridge contract not available for estimateBridgeFee:', error)
       return '0'
     }
   }

@@ -54,9 +54,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       const provider = new ethers.BrowserProvider(window.ethereum)
       
       // Request accounts
-      const accounts = await provider.send('eth_requestAccounts', [])
+      const accounts = await provider.send('eth_requestAccounts', []).catch(error => {
+        console.error('Failed to request accounts:', error)
+        throw new Error('Failed to connect wallet')
+      })
       
-      const network = await provider.getNetwork()
+      const network = await provider.getNetwork().catch(error => {
+        console.error('Failed to get network:', error)
+        throw new Error('Failed to get network information')
+      })
       
       setProvider(provider)
       setAccount(accounts[0])
@@ -186,16 +192,24 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       if (window.ethereum && localStorage.getItem('walletConnected') === 'true') {
         try {
           const provider = new ethers.BrowserProvider(window.ethereum)
-          const accounts = await provider.listAccounts()
+          const accounts = await provider.listAccounts().catch(error => {
+            console.error('Failed to list accounts:', error)
+            return []
+          })
           
           if (accounts.length > 0) {
-            const network = await provider.getNetwork()
+            const network = await provider.getNetwork().catch(error => {
+              console.error('Failed to get network:', error)
+              throw error
+            })
             setProvider(provider)
             setAccount(accounts[0].address)
             setChainId(Number(network.chainId))
           }
         } catch (error) {
           console.error('Auto-connect failed:', error)
+          // Clear the connected flag if auto-connect fails
+          localStorage.removeItem('walletConnected')
         }
       }
     }

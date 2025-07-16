@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Search, ChevronDown } from 'lucide-react'
 import { Token, getTokensByChain } from '../constants/tokens'
 import { useWallet } from '../contexts/WalletContext'
+import { ethers } from 'ethers'
 
 interface TokenSelectorProps {
   selectedToken: Token | null
@@ -47,7 +48,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
               alt={selectedToken.symbol}
               className="w-6 h-6 rounded-full"
               onError={(e) => {
-                e.currentTarget.src = `https://via.placeholder.com/24/3B82F6/FFFFFF?text=${selectedToken.symbol[0]}`
+                e.currentTarget.src = `https://via.placeholder.com/24/3B82F6/FFFFFF?text=${selectedToken.symbol[0] || 'T'}`
               }}
             />
             <div className="text-left">
@@ -89,7 +90,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                     alt={token.symbol}
                     className="w-8 h-8 rounded-full"
                     onError={(e) => {
-                      e.currentTarget.src = `https://via.placeholder.com/32/3B82F6/FFFFFF?text=${token.symbol[0]}`
+                      e.currentTarget.src = `https://via.placeholder.com/32/3B82F6/FFFFFF?text=${token.symbol[0] || 'T'}`
                     }}
                   />
                   <div className="text-left">
