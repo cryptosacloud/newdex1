@@ -107,28 +107,64 @@ export const useBridgeContract = () => {
   }
 
   const getTransaction = async (txId: string): Promise<BridgeTransaction> => {
-    if (!bridgeContract) throw new Error('Bridge contract not available')
+    if (!bridgeContract) {
+      console.warn('Bridge contract not available for getTransaction')
+      return {
+        txId,
+        user: '',
+        token: '',
+        amount: '0',
+        fee: '0',
+        sourceChain: 0,
+        targetChain: 0,
+        targetAddress: '',
+        timestamp: 0,
+        status: BridgeStatus.Pending
+      }
+    }
     
-    const tx = await bridgeContract.getTransaction(txId)
-    return {
-      txId: tx.txId,
-      user: tx.user,
-      token: tx.token,
-      amount: ethers.formatEther(tx.amount),
-      fee: ethers.formatEther(tx.fee),
-      sourceChain: Number(tx.sourceChain),
-      targetChain: Number(tx.targetChain),
-      targetAddress: tx.targetAddress,
-      timestamp: Number(tx.timestamp),
-      status: tx.status as BridgeStatus
+    try {
+      const tx = await bridgeContract.getTransaction(txId)
+      return {
+        txId: tx.txId,
+        user: tx.user,
+        token: tx.token,
+        amount: ethers.formatEther(tx.amount),
+        fee: ethers.formatEther(tx.fee),
+        sourceChain: Number(tx.sourceChain),
+        targetChain: Number(tx.targetChain),
+        targetAddress: tx.targetAddress,
+        timestamp: Number(tx.timestamp),
+        status: tx.status as BridgeStatus
+      }
+    } catch (error) {
+      console.error('Error getting transaction details:', error)
+      return {
+        txId,
+        user: '',
+        token: '',
+        amount: '0',
+        fee: '0',
+        sourceChain: 0,
+        targetChain: 0,
+        targetAddress: '',
+        timestamp: 0,
+        status: BridgeStatus.Pending
+      }
     }
   }
 
   const getUserTransactions = async (userAddress?: string): Promise<string[]> => {
-    if (!bridgeContract) throw new Error('Bridge contract not available')
+    if (!bridgeContract) {
+      console.warn('Bridge contract not available for getUserTransactions')
+      return []
+    }
     
     const address = userAddress || account
-    if (!address) throw new Error('No address provided')
+    if (!address) {
+      console.warn('No address provided for getUserTransactions')
+      return []
+    }
     
     try {
       return await bridgeContract.getUserTransactions(address)

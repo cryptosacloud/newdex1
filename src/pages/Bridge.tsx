@@ -101,12 +101,9 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
   const loadUserTransactions = async () => {
     if (!account) return
     
-    try {
-      const txs = await getUserTransactions(account)
-      setUserTransactions(txs)
-    } catch (error) {
-      console.error('Error loading transactions:', error)
-    }
+    // Get transactions without throwing errors
+    const txs = await getUserTransactions(account)
+    setUserTransactions(txs)
   }
 
   const handleBridge = async () => {
