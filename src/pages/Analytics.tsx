@@ -97,11 +97,22 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       // Load farming stats
       let farmingStats = { 
         totalValueLocked: '0',
-        totalPools: 0
+        totalPools: 0,
+        totalAllocPoint: 0,
+        esrPerSecond: '0'
       }
       try {
         if (isConnected) {
-          const stats = await getFarmingStats()
+          const stats = await getFarmingStats().catch(err => {
+            console.warn('Could not load farming stats, using defaults', err);
+            return {
+              totalPools: 0,
+              totalAllocPoint: 0,
+              esrPerSecond: '0',
+              totalValueLocked: '0'
+            };
+          });
+          
           if (stats) {
             farmingStats = stats
           }
