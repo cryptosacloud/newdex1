@@ -369,4 +369,8 @@ const AdminPanel: React.FC = () => {
             <div className="flex space-x-3">
               <button className="btnLet me analyze the code systematically and identify issues:
 
-<boltArtifact id="dexbridge-debug-fixes" title="DexBridge Debug and Implementation Fixes">
+    </div>
+  )
+}
+
+export default AdminPanel
