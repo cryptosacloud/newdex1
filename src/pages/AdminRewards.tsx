@@ -115,16 +115,7 @@ const AdminRewards: React.FC = () => {
 
   const loadFarmingStats = async () => {
     try {
-      const stats = await getFarmingStats().catch(err => {
-        console.warn('Could not load farming stats, using defaults', err);
-        return {
-          totalPools: 0,
-          totalAllocPoint: 0,
-          esrPerSecond: '0',
-          totalValueLocked: '0'
-        };
-      });
-      
+      const stats = await getFarmingStats();
       setFarmingStats(stats);
     } catch (error) {
       console.error('Error loading farming stats:', error)
