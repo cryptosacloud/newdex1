@@ -295,8 +295,6 @@ export const useFarmingContract = () => {
     
     try {
       const tx = await farmingContract.massUpdatePools()
-      return {
-        totalValueLocked: ethers.formatEther(totalValueLocked)
       return tx.wait()
     } catch (error) {
       console.error('Error updating pools:', error)
