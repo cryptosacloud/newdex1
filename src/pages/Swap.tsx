@@ -6,7 +6,6 @@ import { useDexContract } from '../hooks/useDexContract'
 import TokenSelector from '../components/TokenSelector'
 import TestnetBadge from '../components/TestnetBadge'
 import { ethers } from 'ethers'
-import { ethers } from 'ethers'
 
 interface SwapProps {
   testnetMode: boolean;
