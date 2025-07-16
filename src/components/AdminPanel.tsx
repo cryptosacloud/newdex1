@@ -6,6 +6,15 @@ import { useBridgeContract } from '../hooks/useBridgeContract'
 import { getTokensByChain } from '../constants/tokens'
 import { getDeploymentStatus } from '../constants/contracts'
 
+interface NewToken {
+  address: string;
+  chainId: string;
+  isNative: boolean;
+  minAmount: string;
+  maxAmount: string;
+  fee: string;
+}
+
 const AdminPanel: React.FC = () => {
   const { account, isConnected, chainId } = useWallet()
   const { bridgeContract } = useBridgeContract()
@@ -15,7 +24,7 @@ const AdminPanel: React.FC = () => {
   const [deploymentStatus, setDeploymentStatus] = useState<Record<number, { deployed: boolean; chainName: string }>>({})
   const [contractsDeployed, setContractsDeployed] = useState(false)
 
-  const [newToken, setNewToken] = useState({
+  const [newToken, setNewToken] = useState<NewToken>({
     address: '',
     chainId: '',
     isNative: false,
@@ -28,13 +37,21 @@ const AdminPanel: React.FC = () => {
 
   // Load deployment status
   useEffect(() => {
-    setDeploymentStatus(getDeploymentStatus())
+    try {
+      const status = getDeploymentStatus();
+      setDeploymentStatus(status || {});
+    } catch (error) {
+      console.error('Error loading deployment status:', error);
+      setDeploymentStatus({});
+    }
   }, [])
 
   // Update contracts deployed state
   useEffect(() => {
-    if (chainId && deploymentStatus[chainId]) {
+    if (chainId && deploymentStatus && deploymentStatus[chainId]) {
       setContractsDeployed(deploymentStatus[chainId].deployed)
+    } else {
+      setContractsDeployed(false);
     }
   }, [chainId, deploymentStatus])
 
@@ -49,13 +66,13 @@ const AdminPanel: React.FC = () => {
       try {
         const owner = await bridgeContract.owner().catch(() => null)
         if (!owner) {
-          setIsOwner(false)
+          setIsOwner(false);
           return
         }
-        setIsOwner(owner.toLowerCase() === account.toLowerCase())
+        setIsOwner(owner.toLowerCase() === account.toLowerCase());
       } catch (error) {
-        console.error('Error checking ownership:', error)
-        setIsOwner(false)
+        console.error('Error checking ownership:', error);
+        setIsOwner(false);
       }
     }
 
@@ -70,25 +87,43 @@ const AdminPanel: React.FC = () => {
     
     try {
       setLoading(true)
-      const tx = await bridgeContract.addSupportedToken(
-        newToken.address,
-        parseInt(newToken.chainId),
-        newToken.isNative,
-        newToken.minAmount || '0',
-        newToken.maxAmount || '1000000000000000000000000', // 1M tokens default
-        parseInt(newToken.fee) || 250 // 2.5% default
-      )
-      await tx.wait()
       
-      alert('Token added successfully!')
-      setNewToken({
-        address: '',
-        chainId: '',
-        isNative: false,
-        minAmount: '',
-        maxAmount: '',
-        fee: ''
-      })
+      // Validate inputs
+      const chainIdNum = parseInt(newToken.chainId);
+      if (isNaN(chainIdNum)) {
+        throw new Error('Invalid chain ID');
+      }
+      
+      const feeNum = parseInt(newToken.fee || '250');
+      if (isNaN(feeNum) || feeNum < 0 || feeNum > 10000) {
+        throw new Error('Fee must be between 0 and 10000 (0-100%)');
+      }
+      
+      try {
+        const tx = await bridgeContract.addSupportedToken(
+          newToken.address,
+          chainIdNum,
+          newToken.isNative,
+          newToken.minAmount || '0',
+          newToken.maxAmount || '1000000000000000000000000', // 1M tokens default
+          feeNum
+        );
+        await tx.wait();
+        
+        alert('Token added successfully!');
+        setNewToken({
+          address: '',
+          chainId: '',
+          isNative: false,
+          minAmount: '',
+          maxAmount: '',
+          fee: ''
+        });
+      } catch (txError) {
+        console.error('Transaction failed:', txError);
+        throw new Error(`Transaction failed: ${txError.message || 'Unknown error'}`);
+      }
+      
     } catch (error) {
       console.error('Failed to add token:', error)
       alert('Failed to add token: ' + (error as Error).message)
@@ -105,10 +140,21 @@ const AdminPanel: React.FC = () => {
     
     try {
       setLoading(true)
-      const tx = await bridgeContract.addRelayer(newRelayer)
-      await tx.wait()
-      alert('Relayer added successfully!')
-      setNewRelayer('')
+      
+      // Validate relayer address
+      if (!ethers.isAddress(newRelayer)) {
+        throw new Error('Invalid relayer address');
+      }
+      
+      try {
+        const tx = await bridgeContract.addRelayer(newRelayer);
+        await tx.wait();
+        alert('Relayer added successfully!');
+        setNewRelayer('');
+      } catch (txError) {
+        console.error('Transaction failed:', txError);
+        throw new Error(`Transaction failed: ${txError.message || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('Failed to add relayer:', error)
       alert('Failed to add relayer: ' + (error as Error).message)
@@ -119,7 +165,7 @@ const AdminPanel: React.FC = () => {
 
   // Get available tokens for current chain
   const availableTokens = chainId ? getTokensByChain(chainId) : []
-  const currentChainDeployed = chainId ? deploymentStatus[chainId]?.deployed : false
+  const currentChainDeployed = chainId && deploymentStatus && deploymentStatus[chainId] ? deploymentStatus[chainId].deployed : false
 
   if (!isConnected) {
     return (
@@ -142,16 +188,16 @@ const AdminPanel: React.FC = () => {
           <AlertTriangle className="w-16 h-16 text-orange-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">Contracts Not Deployed</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6">
-            The DexBridge contracts are not deployed on the current network ({deploymentStatus[chainId!]?.chainName || 'Unknown'}).
+            The DexBridge contracts are not deployed on the current network ({chainId && deploymentStatus && deploymentStatus[chainId] ? deploymentStatus[chainId].chainName : 'Unknown'}).
           </p>
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Deployment Status:</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {Object.entries(deploymentStatus).map(([chainId, status]) => (
-                <div key={chainId} className="flex justify-between">
-                  <span>{status.chainName}:</span>
-                  <span className={status.deployed ? 'text-green-600' : 'text-red-600'}>
-                    {status.deployed ? '✓ Deployed' : '✗ Not Deployed'}
+              {Object.entries(deploymentStatus || {}).map(([chainIdStr, status]) => (
+                <div key={chainIdStr} className="flex justify-between">
+                  <span>{status?.chainName || 'Unknown'}:</span>
+                  <span className={status?.deployed ? 'text-green-600' : 'text-red-600'}>
+                    {status?.deployed ? '✓ Deployed' : '✗ Not Deployed'}
                   </span>
                 </div>
               ))}
@@ -244,10 +290,10 @@ const AdminPanel: React.FC = () => {
               <select
                 value={newToken.address}
                 onChange={(e) => setNewToken({ ...newToken, address: e.target.value })}
-                className="input-field"
+                className="input-field w-full"
               >
                 <option value="">Select a token</option>
-                {availableTokens.map((token) => (
+                {(availableTokens || []).map((token) => (
                   <option key={token.address} value={token.address}>
                     {token.symbol} - {token.name}
                   </option>
@@ -297,7 +343,7 @@ const AdminPanel: React.FC = () => {
               <input
                 type="number"
                 placeholder="250"
-                value={newToken.fee}
+                value={newToken.fee || '250'}
                 onChange={(e) => setNewToken({ ...newToken, fee: e.target.value })}
                 className="input-field"
               />
@@ -317,7 +363,7 @@ const AdminPanel: React.FC = () => {
           </div>
           <button
             onClick={handleAddToken}
-            disabled={loading}
+            disabled={loading || !newToken.address || !newToken.chainId}
             className="btn-primary mt-6"
           >
             {loading ? 'Adding...' : 'Add Token'}
@@ -343,7 +389,7 @@ const AdminPanel: React.FC = () => {
                 />
                 <button
                   onClick={handleAddRelayer}
-                  disabled={loading}
+                  disabled={loading || !newRelayer || !ethers.isAddress(newRelayer)}
                   className="btn-primary"
                 >
                   {loading ? 'Adding...' : 'Add Relayer'}

@@ -4,6 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { getContractAddresses } from '../constants/contracts'
 import FARMING_ABI from '../../abi/farming/LPFarming.json'
 import ERC20_ABI from '../../abi/Tokens/DexBridgeToken.json'
+import { ethers } from 'ethers'
 
 interface FarmingStats {
   totalPools: number;
@@ -179,7 +180,7 @@ export const useFarmingContract = () => {
   const getFarmingStats = async (): Promise<FarmingStats> => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    const defaultStats = {
+    const defaultStats: FarmingStats = {
       totalPools: 0,
       totalAllocPoint: 0,
       esrPerSecond: '0',
@@ -187,7 +188,7 @@ export const useFarmingContract = () => {
     }
     
     try {
-      // Check if the function exists before calling it
+      // First try the direct getFarmingStats function
       if (farmingContract.getFarmingStats && typeof farmingContract.getFarmingStats === 'function') {
         try {
           const stats = await farmingContract.getFarmingStats();
@@ -199,7 +200,7 @@ export const useFarmingContract = () => {
           }
         } catch (error) {
           console.error('Error calling getFarmingStats:', error);
-          return defaultStats;
+          // Fall through to the fallback approach
         }
       }
       
@@ -207,42 +208,56 @@ export const useFarmingContract = () => {
       
       // Try to get pool length first
       const poolLength = await farmingContract.poolLength().catch(() => BigInt(0));
+      let totalPoolCount = Number(poolLength);
       
       // If we can't get the farming stats directly, build them from other calls
       let totalValueLocked = BigInt(0);
       let totalAllocPoint = BigInt(0);
       
       // Try to get emission rate
-      const esrPerSecond = await farmingContract.esrPerSecond().catch(() => BigInt(0));
+      let esrPerSecondValue = BigInt(0);
+      try {
+        esrPerSecondValue = await farmingContract.esrPerSecond();
+      } catch (error) {
+        console.warn('Could not get esrPerSecond:', error);
+      }
       
       // Try to get pools info if available
       try {
         const pools = await getAllPools();
-        if (pools && pools.allocPoints && Array.isArray(pools.allocPoints)) {
-          totalAllocPoint = pools.allocPoints.reduce((sum, ap) => sum + BigInt(ap || 0), BigInt(0));
+        
+        // Update total pools count if we got the pools
+        if (pools && pools.lpTokens && Array.isArray(pools.lpTokens)) {
+          totalPoolCount = pools.lpTokens.length;
         }
         
+        // Calculate total alloc points
+        if (pools && pools.allocPoints && Array.isArray(pools.allocPoints)) {
+          totalAllocPoint = BigInt(pools.allocPoints.reduce((sum, ap) => sum + (ap || 0), 0));
+        }
+        
+        // Calculate total value locked
         if (pools && pools.totalStaked && Array.isArray(pools.totalStaked)) {
-          totalValueLocked = pools.totalStaked.reduce(
-            (sum, ts) => {
-              if (!ts) return sum;
+          let tvlSum = BigInt(0);
+          for (const stakedAmount of pools.totalStaked) {
+            if (stakedAmount) {
               try {
-                return sum + BigInt(ethers.parseEther(ts))
+                tvlSum += ethers.parseEther(stakedAmount);
               } catch (e) {
-                return sum
+                console.warn('Error parsing staked amount:', e);
               }
-            }, 
-            BigInt(0)
-          );
+            }
+          }
+          totalValueLocked = tvlSum;
         }
       } catch (poolError) {
-        console.warn('Could not get pool information:', poolError);
+        console.warn('Could not get complete pool information:', poolError);
       }
       
       return {
         totalPools: Number(poolLength),
-        totalAllocPoint: Number(totalAllocPoint),
-        esrPerSecond: ethers.formatEther(esrPerSecond),
+        totalAllocPoint: Number(totalAllocPoint || 0),
+        esrPerSecond: ethers.formatEther(esrPerSecondValue || 0),
         totalValueLocked: ethers.formatEther(totalValueLocked)
       };
     } catch (error) {
@@ -254,8 +269,21 @@ export const useFarmingContract = () => {
   const addPool = async (lpToken: string, allocPoint: number, name: string) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    if (!lpToken || !name || allocPoint < 0) {
-      throw new Error('Invalid pool parameters')
+    // Validate inputs
+    if (!lpToken) {
+      throw new Error('LP token address is required');
+    }
+    
+    if (!ethers.isAddress(lpToken)) {
+      throw new Error('Invalid LP token address');
+    }
+    
+    if (!name || name.trim() === '') {
+      throw new Error('Pool name is required');
+    }
+    
+    if (isNaN(allocPoint) || allocPoint < 0) {
+      throw new Error('Allocation points must be a positive number');
     }
     
     try {
@@ -270,8 +298,13 @@ export const useFarmingContract = () => {
   const setPool = async (pid: number, allocPoint: number) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    if (pid < 0 || allocPoint < 0) {
-      throw new Error('Invalid pool parameters')
+    // Validate inputs
+    if (isNaN(pid) || pid < 0) {
+      throw new Error('Invalid pool ID');
+    }
+    
+    if (isNaN(allocPoint) || allocPoint < 0) {
+      throw new Error('Allocation points must be a positive number');
     }
     
     try {
@@ -286,8 +319,9 @@ export const useFarmingContract = () => {
   const setPoolStatus = async (pid: number, isActive: boolean) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    if (pid < 0) {
-      throw new Error('Invalid pool ID')
+    // Validate inputs
+    if (isNaN(pid) || pid < 0) {
+      throw new Error('Invalid pool ID');
     }
     
     try {
@@ -302,13 +336,24 @@ export const useFarmingContract = () => {
   const setEmissionRate = async (esrPerSecond: string) => {
     if (!farmingContract) throw new Error('Contract not available')
     
-    if (!esrPerSecond || parseFloat(esrPerSecond) < 0) {
-      throw new Error('Invalid emission rate')
+    // Validate emission rate
+    const rate = parseFloat(esrPerSecond);
+    if (isNaN(rate) || rate < 0) {
+      throw new Error('Emission rate must be a positive number');
     }
     
     try {
-      const tx = await farmingContract.setEmissionRate(ethers.parseEther(esrPerSecond))
-      return tx.wait()
+      // Parse the emission rate with proper error handling
+      let parsedRate;
+      try {
+        parsedRate = ethers.parseEther(esrPerSecond);
+      } catch (parseError) {
+        console.error('Error parsing emission rate:', parseError);
+        throw new Error('Invalid emission rate format');
+      }
+      
+      const tx = await farmingContract.setEmissionRate(parsedRate);
+      return tx.wait();
     } catch (error) {
       console.error('Error in setEmissionRate:', error)
       throw error
