@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Grid as BridgeIcon, ArrowRight, Clock, AlertCircle } from 'lucide-react'
 import { CHAIN_CONFIG, isTestnetChain } from '../constants/chainConfig'
 import { useWallet } from '../contexts/WalletContext'
-import { useBridgeContract } from '../hooks/useBridgeContract'
+import { useBridgeContract, BridgeStatus } from '../hooks/useBridgeContract'
 import { getTokensByChain } from '../constants/tokens'
 
 interface BridgeProps {
@@ -104,7 +104,7 @@ const Bridge: React.FC<BridgeProps> = ({ testnetMode }) => {
     try {
       // Get transactions without throwing errors
       const txs = await getUserTransactions(account)
-      setUserTransactions(txs)
+      setUserTransactions(txs || [])
     } catch (error) {
       console.error('Error loading user transactions:', error)
       setUserTransactions([])

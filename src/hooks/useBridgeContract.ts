@@ -167,6 +167,20 @@ export const useBridgeContract = () => {
     }
     
     try {
+      return await bridgeContract.getUserTransactions(address)
+    } catch (error) {
+      console.error('Error getting user transactions:', error)
+      return []
+    }
+  }
+  
+  const getAllTransactions = async (): Promise<string[]> => {
+    if (!bridgeContract) {
+      console.warn('Bridge contract not available for getAllTransactions')
+      return []
+    }
+    
+    try {
       // Check if the function exists before calling it
       if (typeof bridgeContract.getAllTransactions === 'function') {
         return await bridgeContract.getAllTransactions()
@@ -175,7 +189,7 @@ export const useBridgeContract = () => {
         return []
       }
     } catch (error) {
-      console.error('Error getting user transactions:', error)
+      console.error('Error getting all transactions:', error)
       return []
     }
   }
