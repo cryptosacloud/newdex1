@@ -134,12 +134,13 @@ export const useStakingContract = () => {
       }
     } catch (error) {
       console.error('Error in getStakeInfo:', error)
-    return {
-      amount: ethers.formatEther(info.amount),
-      stakedAt: Number(info.stakedAt),
-      lockEndsAt: Number(info.lockEndsAt),
-      canUnstake: info.canUnstake,
-      pendingRewards: ethers.formatUnits(info.pendingRewards, 6) // USDT has 6 decimals
+      return {
+        amount: '0',
+        stakedAt: 0,
+        lockEndsAt: 0,
+        canUnstake: false,
+        pendingRewards: '0'
+      }
     }
   }
 
