@@ -4,6 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { useDexContract } from '../hooks/useDexContract'
 import { getTokensByChain } from '../constants/tokens'
 import TestnetBadge from '../components/TestnetBadge'
+import { ethers } from 'ethers'
 
 interface PoolsProps {
   testnetMode: boolean;
@@ -55,6 +56,19 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
   const loadPools = async () => {
     if (!contracts.factory) return
     
+    const emptyPool = {
+      token0: { symbol: '', name: '', address: '' },
+      token1: { symbol: '', name: '', address: '' },
+      pairAddress: '',
+      tvl: '0',
+      apr: '0',
+      volume24h: '0',
+      userLiquidity: '0',
+      reserve0: '0',
+      reserve1: '0',
+      totalSupply: '0'
+    }
+    
     try {
       setLoading(true)
       const poolsData: Pool[] = []
@@ -66,7 +80,7 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
         try {
           const pairAddress = pairAddresses[i]
           const reserves = await getPairReserves(pairAddress).catch(() => ({
-            token0: ethers.ZeroAddress,
+            token0: ethers.ZeroAddress, 
             token1: ethers.ZeroAddress,
             reserve0: '0',
             reserve1: '0',
@@ -75,7 +89,13 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
           
           // Get token info
           const token0Info = availableTokens.find(t => t.address.toLowerCase() === reserves.token0.toLowerCase())
-          const token1Info = availableTokens.find(t => t.address.toLowerCase() === reserves.token1.toLowerCase())
+          const token1Info = availableTokens.find(t => t.address.toLowerCase() === reserves.token1.toLowerCase()) 
+          
+          // Skip if we can't find token info
+          if (!token0Info || !token1Info) {
+            console.warn(`Skipping pair ${pairAddress} - couldn't find token info`)
+            continue
+          }
           
           if (token0Info && token1Info) {
             // Calculate TVL (simplified - would need price oracles in production)
@@ -121,7 +141,7 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
     
     try {
       const userPools: Pool[] = []
-
+      
       for (const pool of pools) {
         try {
           const lpBalance = await getTokenBalance(pool.pairAddress, account).catch(() => '0')
@@ -151,7 +171,7 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
     try {
       setIsAddingLiquidity(true)
       
-      // Check if pair exists, create if not
+      // Check if pair exists, create if not 
       const pairAddress = await getPairAddress(tokenA, tokenB).catch(() => ethers.ZeroAddress)
       if (pairAddress === '0x0000000000000000000000000000000000000000') {
         await createPair(tokenA, tokenB).catch(error => {
@@ -160,9 +180,9 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
         })
       }
       
-      const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20 minutes
-      const minAmountA = (parseFloat(amountA) * 0.95).toString() // 5% slippage
-      const minAmountB = (parseFloat(amountB) * 0.95).toString()
+      const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20 minutes 
+      const minAmountA = (parseFloat(amountA) * 0.95).toString() // 5% slippage 
+      const minAmountB = (parseFloat(amountB) * 0.95).toString() 
       
       await addLiquidity(tokenA, tokenB, amountA, amountB, minAmountA, minAmountB, deadline)
       
@@ -171,7 +191,7 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
       setTokenA('')
       setTokenB('')
       setAmountA('')
-      setAmountB('')
+      setAmountB('') 
       
       // Reload pools and positions
       loadPools()
@@ -187,7 +207,7 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
   const calculatePoolShare = (pool: Pool) => {
     if (parseFloat(pool.userLiquidity) === 0 || parseFloat(pool.totalSupply) === 0) return '0'
     try {
-      return ((parseFloat(pool.userLiquidity) / parseFloat(pool.totalSupply)) * 100).toFixed(4)
+      return ((parseFloat(pool.userLiquidity) / parseFloat(pool.totalSupply)) * 100).toFixed(4) 
     } catch (error) {
       return '0'
     }
@@ -279,10 +299,10 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {pool.token0.symbol[0]}
+                        {pool.token0.symbol ? pool.token0.symbol[0] : '?'}
                       </div>
                       <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold -ml-2">
-                        {pool.token1.symbol[0]}
+                        {pool.token1.symbol ? pool.token1.symbol[0] : '?'}
                       </div>
                     </div>
                     <div>
@@ -345,10 +365,10 @@ const Pools: React.FC<PoolsProps> = ({ testnetMode }) => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {pool.token0.symbol[0]}
+                        {pool.token0.symbol ? pool.token0.symbol[0] : '?'}
                       </div>
                       <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold -ml-2">
-                        {pool.token1.symbol[0]}
+                        {pool.token1.symbol ? pool.token1.symbol[0] : '?'}
                       </div>
                     </div>
                     <div>

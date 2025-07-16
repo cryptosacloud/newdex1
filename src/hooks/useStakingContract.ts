@@ -147,7 +147,7 @@ export const useStakingContract = () => {
   const getStakingStats = async () => {
     if (!stakingContract) {
       console.warn('Staking contract not available for getStakingStats')
-      return {
+      return { 
         totalStaked: '0',
         totalStakers: 0,
         totalRewardsDistributed: '0',
@@ -158,7 +158,7 @@ export const useStakingContract = () => {
     
     try {
       const stats = await stakingContract.getStakingStats()
-      
+       
       try {
         return {
           totalStaked: ethers.formatEther(stats._totalStaked),
@@ -166,7 +166,7 @@ export const useStakingContract = () => {
           totalRewardsDistributed: ethers.formatUnits(stats._totalRewardsDistributed, 6),
           pendingRewards: ethers.formatUnits(stats._pendingRewards, 6),
           currentAPR: ethers.formatEther(stats._currentAPR)
-        }
+        } 
       } catch (error) {
         console.error('Error parsing staking stats:', error)
         return {
@@ -175,7 +175,7 @@ export const useStakingContract = () => {
           totalRewardsDistributed: '0',
           pendingRewards: '0',
           currentAPR: '0'
-        }
+        } 
       }
     } catch (error) {
       console.error('Error in getStakingStats:', error)
@@ -185,29 +185,29 @@ export const useStakingContract = () => {
         totalRewardsDistributed: '0',
         pendingRewards: '0',
         currentAPR: '0'
-      }
+      } 
     }
   }
 
   const checkFeeRequirements = async (userAddress: string) => {
     if (!stakingContract) {
       console.warn('Staking contract not available for checkFeeRequirements')
-      return {
+      return { 
         hasBalance: false,
         hasAllowance: false,
         balance: '0',
         allowance: '0'
-      }
+      } 
     }
     
     try {
-      const requirements = await stakingContract.checkFeeRequirements(userAddress)
-      return {
+      const requirements = await stakingContract.checkFeeRequirements(userAddress) 
+      return { 
         hasBalance: requirements.hasBalance,
         hasAllowance: requirements.hasAllowance,
         balance: requirements.balance.toString(),
         allowance: requirements.allowance.toString()
-      }
+      } 
     } catch (error) {
       console.error('Error in checkFeeRequirements:', error)
     return {
@@ -222,7 +222,7 @@ export const useStakingContract = () => {
     if (!stakingContract) {
       console.warn('Staking contract not available for distributeRewards')
       throw new Error('Staking contract not available for distributing rewards')
-    }
+    } 
     
     try {
       const tx = await stakingContract.distributeRewards()

@@ -29,8 +29,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
   const { chainId, isConnected } = useWallet()
   const { contracts, getAllPairs, getPairReserves } = useDexContract()
   const { getStakingStats } = useStakingContract()
-  const { getFarmingStats } = useFarmingContract()
-  const { getAllTransactions } = useBridgeContract()
+  const { getFarmingStats } = useFarmingContract() 
+  const { getUserTransactions } = useBridgeContract()
   
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     totalValueLocked: '0',
@@ -47,7 +47,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
   const [loading, setLoading] = useState(false)
   
   const currentIsTestnet = chainId ? isTestnetChain(chainId) : false;
-
+  
   useEffect(() => {
     if (isConnected && contracts.factory) {
       loadAnalyticsData()
@@ -56,6 +56,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
 
   const loadAnalyticsData = async () => {
     try {
+      setLoading(true)
       // Load DEX data
       let dexTVL = 0
       let totalPools = 0
@@ -63,7 +64,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
         if (contracts.factory) {
           const pairs = await getAllPairs().catch(() => [])
           totalPools = pairs.length
-          
+           
           for (const pairAddress of pairs.slice(0, 10)) { // Limit to prevent RPC overload
             try {
               const reserves = await getPairReserves(pairAddress).catch(() => ({
@@ -73,7 +74,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
                 token1: '',
                 totalSupply: '0'
               }))
-              dexTVL += parseFloat(reserves.reserve0) + parseFloat(reserves.reserve1)
+              dexTVL += parseFloat(reserves.reserve0 || '0') + parseFloat(reserves.reserve1 || '0')
             } catch (error) {
               console.error('Error loading pair reserves:', error)
             }
@@ -83,7 +84,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
         console.error('Error loading DEX data:', error)
       }
 
-      // Load staking stats
+      // Load staking stats 
       let stakingStats = { 
         totalStaked: '0', 
         totalRewardsDistributed: '0', 
@@ -91,7 +92,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       }
       try {
         if (isConnected) {
-          const stats = await getStakingStats().catch(err => {
+          const stats = await getStakingStats().catch(err => { 
             console.warn('Could not load staking stats, using defaults', err);
             return {
               totalStaked: '0',
@@ -100,7 +101,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
               pendingRewards: '0',
               currentAPR: '0'
             };
-          });
+          }); 
           if (stats) {
             stakingStats = stats
           }
@@ -109,7 +110,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
         console.error('Error loading staking stats:', error)
       }
 
-      // Load farming stats
+      // Load farming stats 
       let farmingStats = { 
         totalValueLocked: '0',
         totalPools: 0,
@@ -118,7 +119,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       }
       try {
         if (isConnected) {
-          farmingStats = await getFarmingStats();
+          farmingStats = await getFarmingStats().catch(() => farmingStats);
         }
       } catch (error) {
         console.error('Error loading farming stats:', error)
@@ -130,9 +131,10 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
         volume: '0'
       }
       try {
-        if (isConnected) {
-          const bridgeTxs = await getUserTransactions(account || '').catch(err => {
-            console.warn('Could not load bridge transactions, using defaults', err);
+        if (isConnected && window.ethereum) {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          const bridgeTxs = await getUserTransactions(accounts[0] || '').catch(err => {
+            console.warn('Could not load bridge transactions, using defaults', err); 
             return [];
           });
           if (bridgeTxs) {
@@ -145,7 +147,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ testnetMode }) => {
       }
 
       // Calculate total TVL
-      const totalTVL = dexTVL + parseFloat(stakingStats.totalStaked) + parseFloat(farmingStats.totalValueLocked)
+      const totalTVL = dexTVL + parseFloat(stakingStats.totalStaked || '0') + parseFloat(farmingStats.totalValueLocked || '0')
 
       setAnalyticsData({
         totalValueLocked: totalTVL.toFixed(2),

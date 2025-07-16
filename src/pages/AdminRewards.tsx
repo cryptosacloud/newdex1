@@ -166,11 +166,11 @@ const AdminRewards: React.FC = () => {
   const calculateAPR = (allocPoint: number, totalStaked: string) => {
     if (parseFloat(totalStaked) === 0 || farmingStats.totalAllocPoint === 0) return '0'
     
-    const poolWeight = allocPoint / farmingStats.totalAllocPoint
-    const esrPerDay = parseFloat(farmingStats.esrPerSecond) * 86400
-    const poolESRPerDay = esrPerDay * poolWeight
-    const dailyAPR = (poolESRPerDay / parseFloat(totalStaked)) * 100
-    const annualAPR = dailyAPR * 365
+    const poolWeight = farmingStats.totalAllocPoint > 0 ? allocPoint / farmingStats.totalAllocPoint : 0
+    const esrPerDay = parseFloat(farmingStats.esrPerSecond || '0') * 86400
+    const poolESRPerDay = esrPerDay * poolWeight 
+    const dailyAPR = parseFloat(totalStaked) > 0 ? (poolESRPerDay / parseFloat(totalStaked)) * 100 : 0
+    const annualAPR = dailyAPR * 365 
     
     return annualAPR.toFixed(1)
   }
@@ -178,7 +178,7 @@ const AdminRewards: React.FC = () => {
   const handleAddPool = async () => {
     if (!newPool.lpToken || !newPool.allocPoint || !newPool.name) {
       alert('Please fill in all fields')
-      return
+      return 
     }
 
     try {
@@ -187,7 +187,7 @@ const AdminRewards: React.FC = () => {
         console.error('Add pool error:', error)
         throw new Error('Failed to add pool')
       })
-      alert('Pool added successfully!')
+      alert('Pool added successfully!') 
       setNewPool({ lpToken: '', allocPoint: '', name: '' })
       setShowAddPool(false)
       loadData()
@@ -202,7 +202,7 @@ const AdminRewards: React.FC = () => {
   const handleEditPool = async () => {
     if (!selectedPool) return
 
-    try {
+    try { 
       setIsLoading(true)
       await setPool(selectedPool.id, selectedPool.allocPoint).catch(error => {
         console.error('Edit pool error:', error)
@@ -223,7 +223,7 @@ const AdminRewards: React.FC = () => {
   const handleTogglePool = async (pool: Pool) => {
     try {
       setIsLoading(true)
-      await setPoolStatus(pool.id, !pool.isActive).catch(error => {
+      await setPoolStatus(pool.id, !pool.isActive).catch(error => { 
         console.error('Toggle pool error:', error)
         throw new Error('Failed to toggle pool status')
       })
@@ -240,7 +240,7 @@ const AdminRewards: React.FC = () => {
   const handleUpdateEmissionRate = async () => {
     if (!newEmissionRate) return
 
-    try {
+    try { 
       setIsLoading(true)
       await setEmissionRate(newEmissionRate).catch(error => {
         console.error('Update emission rate error:', error)
@@ -260,7 +260,7 @@ const AdminRewards: React.FC = () => {
   const handleMassUpdate = async () => {
     try {
       setIsLoading(true)
-      await massUpdatePools().catch(error => {
+      await massUpdatePools().catch(error => { 
         console.error('Mass update error:', error)
         throw new Error('Failed to update pools')
       })
@@ -277,7 +277,7 @@ const AdminRewards: React.FC = () => {
   const handleDistributeRewards = async () => {
     try {
       setIsLoading(true)
-      await distributeRewards().catch(error => {
+      await distributeRewards().catch(error => { 
         console.error('Distribute rewards error:', error)
         throw new Error('Failed to distribute rewards')
       })
@@ -450,7 +450,7 @@ const AdminRewards: React.FC = () => {
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                        {pool.name[0]}
+                        {pool.name && pool.name.length > 0 ? pool.name[0] : '?'}
                       </div>
                       <div>
                         <p className="font-medium">{pool.name}</p>

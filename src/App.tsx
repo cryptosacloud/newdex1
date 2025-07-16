@@ -15,20 +15,20 @@ import AdminRewards from './pages/AdminRewards'
 import AdminPanel from './components/AdminPanel'
 
 function App() {
-  const [testnetMode, setTestnetMode] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [testnetMode, setTestnetMode] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
   // Global error handler
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      console.error('Global error:', event.error);
+      console.error('Global error:', event.error)
       // We don't set the error state here to avoid re-rendering the entire app
       // Instead, we'll let the individual components handle their errors
-    };
+    }
 
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
 
   return (
     <ThemeProvider>

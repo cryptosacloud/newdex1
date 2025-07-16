@@ -47,7 +47,12 @@ export const useDexContract = () => {
   const getTokenContract = async (tokenAddress: string) => {
     if (!provider) return null
     const signer = await provider.getSigner()
-    return new ethers.Contract(tokenAddress, ERC20_ABI, signer)
+    try {
+      return new ethers.Contract(tokenAddress, ERC20_ABI, signer)
+    } catch (error) {
+      console.error('Error creating token contract:', error)
+      return null
+    }
   }
 
   const getAllPairs = async () => {
@@ -56,7 +61,7 @@ export const useDexContract = () => {
     try {
       // Check if we're on a network with deployed contracts
       const pairsLength = await contracts.factory.allPairsLength().catch(() => BigInt(0))
-      const pairs = []
+      const pairs: string[] = []
       
       // Only try to get pairs if length is greater than 0
       if (pairsLength > 0) {
@@ -64,7 +69,7 @@ export const useDexContract = () => {
           try {
             const pairAddress = await contracts.factory.allPairs(i)
             pairs.push(pairAddress)
-          } catch (error) {
+          } catch (error) { 
             console.error(`Error getting pair at index ${i}:`, error)
           }
         }
@@ -72,7 +77,7 @@ export const useDexContract = () => {
       
       return pairs
     } catch (error) {
-      console.error('Error getting all pairs:', error)
+      console.error('Error getting all pairs:', error) 
       return []
     }
   }
@@ -80,7 +85,7 @@ export const useDexContract = () => {
   const getPairReserves = async (pairAddress: string) => {
     if (!provider) throw new Error('Provider not available')
     
-    try {
+    try { 
       try {
         const signer = await provider.getSigner()
         const pairContract = new ethers.Contract(
@@ -94,7 +99,7 @@ export const useDexContract = () => {
           signer
         )
         
-        const [reserve0, reserve1] = await pairContract.getReserves().catch(() => [BigInt(0), BigInt(0)])
+        const [reserve0, reserve1] = await pairContract.getReserves().catch(() => [BigInt(0), BigInt(0)]) 
         const token0 = await pairContract.token0()
         const token1 = await pairContract.token1()
         const totalSupply = await pairContract.totalSupply()
@@ -106,7 +111,7 @@ export const useDexContract = () => {
           token1,
           totalSupply: ethers.formatEther(totalSupply)
         }
-      } catch (error) {
+      } catch (error) { 
         console.error('Error getting pair details:', error)
         return {
           reserve0: '0',
@@ -116,7 +121,7 @@ export const useDexContract = () => {
           totalSupply: '0'
         }
       }
-    } catch (error) {
+    } catch (error) { 
       console.error('Error getting pair reserves:', error)
       return {
         reserve0: '0',
@@ -175,14 +180,14 @@ export const useDexContract = () => {
   const getAmountsOut = async (amountIn: string, path: string[]) => {
     if (!contracts.router) throw new Error('Router not available')
     
-    try {
+    try { 
       const amounts = await contracts.router.getAmountsOut(
         ethers.parseEther(amountIn),
         path
       )
       
       return amounts.map((amount: bigint) => ethers.formatEther(amount))
-    } catch (error) {
+    } catch (error) { 
       console.error('Error getting amounts out:', error)
       return [amountIn, '0'] // Return input amount and 0 for output
     }
@@ -191,9 +196,9 @@ export const useDexContract = () => {
   const getPairAddress = async (tokenA: string, tokenB: string) => {
     if (!contracts.factory) throw new Error('Factory not available')
     
-    try {
+    try { 
       return await contracts.factory.getPair(tokenA, tokenB)
-    } catch (error) {
+    } catch (error) { 
       console.error('Error getting pair address:', error)
       return ethers.ZeroAddress
     }
@@ -202,10 +207,10 @@ export const useDexContract = () => {
   const createPair = async (tokenA: string, tokenB: string) => {
     if (!contracts.factory) throw new Error('Factory not available')
     
-    try {
+    try { 
       const tx = await contracts.factory.createPair(tokenA, tokenB)
       return tx.wait()
-    } catch (error) {
+    } catch (error) { 
       console.error('Error creating pair:', error)
       throw error
     }
@@ -214,10 +219,16 @@ export const useDexContract = () => {
   const getTokenBalance = async (tokenAddress: string, userAddress?: string) => {
     try {
       const token = await getTokenContract(tokenAddress)
-      if (!token) throw new Error('Token contract not available')
+      if (!token) {
+        console.warn('Token contract not available for getTokenBalance')
+        return '0'
+      }
       
       const address = userAddress || account
-      if (!address) throw new Error('No address provided')
+      if (!address) {
+        console.warn('No address provided for getTokenBalance')
+        return '0'
+      }
       
       const balance = await token.balanceOf(address)
       return ethers.formatEther(balance)
@@ -230,7 +241,9 @@ export const useDexContract = () => {
   const approveToken = async (tokenAddress: string, spenderAddress: string, amount: string) => {
     try {
       const token = await getTokenContract(tokenAddress)
-      if (!token) throw new Error('Token contract not available')
+      if (!token) {
+        throw new Error('Token contract not available for approval')
+      }
       
       const tx = await token.approve(spenderAddress, ethers.parseEther(amount))
       return tx.wait()
@@ -243,7 +256,10 @@ export const useDexContract = () => {
   const getTokenAllowance = async (tokenAddress: string, spenderAddress: string) => {
     try {
       const token = await getTokenContract(tokenAddress)
-      if (!token || !account) throw new Error('Token contract or account not available')
+      if (!token || !account) {
+        console.warn('Token contract or account not available for getTokenAllowance')
+        return '0'
+      }
       
       const allowance = await token.allowance(account, spenderAddress)
       return ethers.formatEther(allowance)
@@ -256,9 +272,17 @@ export const useDexContract = () => {
   const checkFeeRequirements = async (userAddress?: string) => {
     try {
       if (!contracts.router) throw new Error('Router not available')
-      
+       
       const address = userAddress || account
-      if (!address) throw new Error('No address provided')
+      if (!address) {
+        console.warn('No address provided for checkFeeRequirements')
+        return {
+          hasBalance: false,
+          hasAllowance: false,
+          balance: '0',
+          allowance: '0'
+        }
+      }
       
       const requirements = await contracts.router.checkFeeRequirements(address)
       return {

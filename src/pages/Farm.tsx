@@ -3,7 +3,6 @@ import { Sprout, TrendingUp, DollarSign, Clock } from 'lucide-react'
 import { useWallet } from '../contexts/WalletContext'
 import { useFarmingContract } from '../hooks/useFarmingContract'
 import TestnetBadge from '../components/TestnetBadge'
-import NetworkSwitcher from '../components/NetworkSwitcher'
 
 interface Pool {
   id: number
@@ -208,17 +207,17 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
   const calculateAPR = (pool: Pool) => {
     // Simplified APR calculation
     // In production, you'd need price oracles and more complex calculations
-    const poolWeight = pool.allocPoint / farmingStats.totalAllocPoint
-    const esrPerDay = parseFloat(farmingStats.esrPerSecond) * 86400
-    const poolESRPerDay = esrPerDay * poolWeight
+    const poolWeight = farmingStats.totalAllocPoint > 0 ? pool.allocPoint / farmingStats.totalAllocPoint : 0
+    const esrPerDay = parseFloat(farmingStats.esrPerSecond || '0') * 86400
+    const poolESRPerDay = esrPerDay * poolWeight 
     
     if (parseFloat(pool.totalStaked) === 0) return '0'
     
     // Assuming 1 ESR = $1 and 1 LP = $1 for simplification
     const dailyRewardValue = poolESRPerDay
     const poolValue = parseFloat(pool.totalStaked)
-    const dailyAPR = (dailyRewardValue / poolValue) * 100
-    const annualAPR = dailyAPR * 365
+    const dailyAPR = poolValue > 0 ? (dailyRewardValue / poolValue) * 100 : 0
+    const annualAPR = dailyAPR * 365 
     
     return annualAPR.toFixed(1)
   }
@@ -313,7 +312,7 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-                  <Sprout className="w-6 h-6 text-white" />
+                  <Sprout className="w-6 h-6 text-white" /> 
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{pool.name}</h3>
@@ -327,7 +326,7 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
                 <div className="text-right">
                   <p className="text-sm text-gray-500 dark:text-gray-400">APR</p>
                   <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                    {calculateAPR(pool)}%
+                    {calculateAPR(pool)}% 
                   </p>
                 </div>
                 <div className="text-right">
@@ -336,12 +335,12 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Your Stake</p>
-                  <p className="font-semibold">{parseFloat(pool.userStaked).toFixed(4)}</p>
+                  <p className="font-semibold">{parseFloat(pool.userStaked || '0').toFixed(4)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Pending ESR</p>
                   <p className="font-semibold text-green-600 dark:text-green-400">
-                    {parseFloat(pool.pendingRewards).toFixed(4)}
+                    {parseFloat(pool.pendingRewards || '0').toFixed(4)}
                   </p>
                 </div>
                 <div className="flex space-x-2">
@@ -424,12 +423,12 @@ const Farm: React.FC<FarmProps> = ({ testnetMode }) => {
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <div className="flex justify-between text-sm mb-2">
                   <span>Your Staked:</span>
-                  <span>{parseFloat(selectedPool.userStaked).toFixed(4)} LP</span>
+                  <span>{parseFloat(selectedPool.userStaked || '0').toFixed(4)} LP</span>
                 </div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Pending Rewards:</span>
                   <span className="text-green-600 dark:text-green-400">
-                    {parseFloat(selectedPool.pendingRewards).toFixed(4)} ESR
+                    {parseFloat(selectedPool.pendingRewards || '0').toFixed(4)} ESR
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

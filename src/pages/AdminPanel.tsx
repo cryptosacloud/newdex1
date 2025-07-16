@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Shield, Plus, Settings, Users, Gift } from 'lucide-react'
+import { Shield, Plus, Settings, Users, Gift, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useBridgeContract } from '../hooks/useBridgeContract'
@@ -13,6 +13,7 @@ const AdminPanel: React.FC = () => {
   const [isOwner, setIsOwner] = useState(false)
   const [loading, setLoading] = useState(false)
   const [deploymentStatus, setDeploymentStatus] = useState<Record<number, { deployed: boolean; chainName: string }>>({})
+  const [contractsDeployed, setContractsDeployed] = useState(false)
 
   const [newToken, setNewToken] = useState({
     address: '',
@@ -28,19 +29,30 @@ const AdminPanel: React.FC = () => {
   // Load deployment status
   useEffect(() => {
     setDeploymentStatus(getDeploymentStatus())
-  }, [])
+  }, []) 
+
+  // Update contracts deployed state
+  useEffect(() => {
+    if (chainId && deploymentStatus[chainId]) {
+      setContractsDeployed(deploymentStatus[chainId].deployed)
+    }
+  }, [chainId, deploymentStatus])
 
   // Check if current account is contract owner
   useEffect(() => {
     const checkOwnership = async () => {
-      if (!bridgeContract || !account) {
+      if (!bridgeContract || !account || !contractsDeployed) {
         setIsOwner(false)
         return
       }
 
       try {
-        const owner = await bridgeContract.owner()
-        setIsOwner(owner.toLowerCase() === account.toLowerCase())
+        const owner = await bridgeContract.owner().catch(() => null)
+        if (!owner) {
+          setIsOwner(false)
+          return
+        }
+        setIsOwner(owner.toLowerCase() === account.toLowerCase()) 
       } catch (error) {
         console.error('Error checking ownership:', error)
         setIsOwner(false)
@@ -53,7 +65,7 @@ const AdminPanel: React.FC = () => {
   const handleAddToken = async () => {
     if (!bridgeContract || !newToken.address || !newToken.chainId) {
       alert('Please fill in required fields')
-      return
+      return 
     }
     
     try {
@@ -67,7 +79,7 @@ const AdminPanel: React.FC = () => {
         parseInt(newToken.fee) || 250 // 2.5% default
       )
       await tx.wait()
-      
+       
       alert('Token added successfully!')
       setNewToken({
         address: '',
@@ -76,7 +88,7 @@ const AdminPanel: React.FC = () => {
         minAmount: '',
         maxAmount: '',
         fee: ''
-      })
+      }) 
     } catch (error) {
       console.error('Failed to add token:', error)
       alert('Failed to add token: ' + (error as Error).message)
@@ -88,7 +100,7 @@ const AdminPanel: React.FC = () => {
   const handleAddRelayer = async () => {
     if (!bridgeContract || !newRelayer) {
       alert('Please enter relayer address')
-      return
+      return 
     }
     
     try {
@@ -96,7 +108,7 @@ const AdminPanel: React.FC = () => {
       const tx = await bridgeContract.addRelayer(newRelayer)
       await tx.wait()
       alert('Relayer added successfully!')
-      setNewRelayer('')
+      setNewRelayer('') 
     } catch (error) {
       console.error('Failed to add relayer:', error)
       alert('Failed to add relayer: ' + (error as Error).message)
@@ -367,10 +379,10 @@ const AdminPanel: React.FC = () => {
               />
             </div>
             <div className="flex space-x-3">
-              <button className="btnLet me analyze the code systematically and identify issues:
-
-    </div>
-  )
+        </div> 
+      )} 
+    </div> 
+  ) 
 }
 
 export default AdminPanel
