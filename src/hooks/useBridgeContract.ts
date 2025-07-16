@@ -127,17 +127,6 @@ export const useBridgeContract = () => {
   const getUserTransactions = async (userAddress?: string): Promise<string[]> => {
     if (!bridgeContract) throw new Error('Bridge contract not available')
     
-    try {
-      return await bridgeContract.getAllTransactions()
-    } catch (error) {
-      console.error('Error getting all transactions:', error)
-      return []
-    }
-  }
-
-  const getUserTransactions = async (userAddress?: string): Promise<string[]> => {
-    if (!bridgeContract) throw new Error('Bridge contract not available')
-    
     const address = userAddress || account
     if (!address) throw new Error('No address provided')
     
@@ -194,6 +183,16 @@ export const useBridgeContract = () => {
     burnAndBridge,
     getTransaction,
     getUserTransactions,
+    getAllTransactions: async (): Promise<string[]> => {
+      if (!bridgeContract) throw new Error('Bridge contract not available')
+      
+      try {
+        return await bridgeContract.getAllTransactions()
+      } catch (error) {
+        console.error('Error getting all transactions:', error)
+        return []
+      }
+    },
     estimateBridgeFee,
     checkFeeRequirements
   }
