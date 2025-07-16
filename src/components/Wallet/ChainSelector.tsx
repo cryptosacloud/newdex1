@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useWallet } from '../../contexts/WalletContext'
 import { CHAIN_CONFIG, getChainName, isTestnetChain } from '../../constants/chainConfig'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 
 const ChainSelector: React.FC = () => {
   const { chainId, switchChain } = useWallet()
