@@ -52,14 +52,26 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
   useEffect(() => {
     if (account) {
       loadStakeInfo()
-      loadStakingStats()
+      loadStakingStats() 
       checkFeeStatus()
     }
   }, [account])
 
   const loadStakeInfo = async () => {
     try {
-      const info = await getStakeInfo(account!)
+      if (!account) return
+      
+      const info = await getStakeInfo(account).catch(err => {
+        console.warn('Could not load stake info, using defaults', err);
+        return {
+          amount: '0',
+          stakedAt: 0,
+          lockEndsAt: 0,
+          canUnstake: false,
+          pendingRewards: '0'
+        };
+      });
+      
       setUserStake(info)
     } catch (error) {
       console.error('Error loading stake info:', error)
@@ -68,7 +80,17 @@ const Stake: React.FC<StakeProps> = ({ testnetMode }) => {
 
   const loadStakingStats = async () => {
     try {
-      const stats = await getStakingStats()
+      const stats = await getStakingStats().catch(err => {
+        console.warn('Could not load staking stats, using defaults', err);
+        return {
+          totalStaked: '0',
+          totalStakers: 0,
+          totalRewardsDistributed: '0',
+          pendingRewards: '0',
+          currentAPR: '0'
+        };
+      });
+      
       setStakingStats(stats)
     } catch (error) {
       console.error('Error loading staking stats:', error)
