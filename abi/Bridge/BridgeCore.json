@@ -1,0 +1,135 @@
+[
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "_chainId", "type": "uint256"},
+      {"internalType": "address", "name": "_feeCollector", "type": "address"},
+      {"internalType": "address", "name": "_usdtToken", "type": "address"}
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_token", "type": "address"},
+      {"internalType": "uint256", "name": "_chainId", "type": "uint256"},
+      {"internalType": "bool", "name": "_isNative", "type": "bool"},
+      {"internalType": "uint256", "name": "_minAmount", "type": "uint256"},
+      {"internalType": "uint256", "name": "_maxAmount", "type": "uint256"},
+      {"internalType": "uint256", "name": "_fee", "type": "uint256"}
+    ],
+    "name": "addSupportedToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_relayer", "type": "address"}
+    ],
+    "name": "addRelayer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_token", "type": "address"},
+      {"internalType": "uint256", "name": "_amount", "type": "uint256"},
+      {"internalType": "uint256", "name": "_targetChain", "type": "uint256"},
+      {"internalType": "address", "name": "_targetAddress", "type": "address"}
+    ],
+    "name": "lockTokens",
+    "outputs": [{"internalType": "bytes32", "name": "txId", "type": "bytes32"}],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "bytes32", "name": "_txId", "type": "bytes32"}
+    ],
+    "name": "releaseTokens",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "bytes32", "name": "_txId", "type": "bytes32"}
+    ],
+    "name": "getTransaction",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "bytes32", "name": "txId", "type": "bytes32"},
+          {"internalType": "address", "name": "user", "type": "address"},
+          {"internalType": "address", "name": "token", "type": "address"},
+          {"internalType": "uint256", "name": "amount", "type": "uint256"},
+          {"internalType": "uint256", "name": "fee", "type": "uint256"},
+          {"internalType": "uint256", "name": "sourceChain", "type": "uint256"},
+          {"internalType": "uint256", "name": "targetChain", "type": "uint256"},
+          {"internalType": "address", "name": "targetAddress", "type": "address"},
+          {"internalType": "uint256", "name": "timestamp", "type": "uint256"},
+          {"internalType": "uint8", "name": "status", "type": "uint8"}
+        ],
+        "internalType": "struct DexBridgeCore.BridgeTransaction",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_user", "type": "address"}
+    ],
+    "name": "getUserTransactions",
+    "outputs": [{"internalType": "bytes32[]", "name": "", "type": "bytes32[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_stakingContract", "type": "address"}
+    ],
+    "name": "setStakingContract",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "bytes32", "name": "txId", "type": "bytes32"},
+      {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+      {"indexed": true, "internalType": "address", "name": "token", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "targetChain", "type": "uint256"},
+      {"indexed": false, "internalType": "address", "name": "targetAddress", "type": "address"}
+    ],
+    "name": "TokenLocked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "bytes32", "name": "txId", "type": "bytes32"}
+    ],
+    "name": "BridgeCompleted",
+    "type": "event"
+  }
+]

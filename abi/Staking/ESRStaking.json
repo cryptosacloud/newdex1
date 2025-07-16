@@ -1,0 +1,144 @@
+[
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_esrToken", "type": "address"},
+      {"internalType": "address", "name": "_usdtToken", "type": "address"},
+      {"internalType": "address", "name": "_feeCollector", "type": "address"},
+      {"internalType": "address", "name": "_rewardPool", "type": "address"}
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "_amount", "type": "uint256"}
+    ],
+    "name": "stake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "_amount", "type": "uint256"}
+    ],
+    "name": "unstake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "collectFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "distributeRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "_distributionId", "type": "uint256"}
+    ],
+    "name": "claimRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "claimAllRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_user", "type": "address"}
+    ],
+    "name": "getStakeInfo",
+    "outputs": [
+      {"internalType": "uint256", "name": "amount", "type": "uint256"},
+      {"internalType": "uint256", "name": "stakedAt", "type": "uint256"},
+      {"internalType": "uint256", "name": "lockEndsAt", "type": "uint256"},
+      {"internalType": "bool", "name": "canUnstake", "type": "bool"},
+      {"internalType": "uint256", "name": "pendingRewards", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getStakingStats",
+    "outputs": [
+      {"internalType": "uint256", "name": "_totalStaked", "type": "uint256"},
+      {"internalType": "uint256", "name": "_totalStakers", "type": "uint256"},
+      {"internalType": "uint256", "name": "_totalRewardsDistributed", "type": "uint256"},
+      {"internalType": "uint256", "name": "_pendingRewards", "type": "uint256"},
+      {"internalType": "uint256", "name": "_currentAPR", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "user", "type": "address"}
+    ],
+    "name": "checkFeeRequirements",
+    "outputs": [
+      {"internalType": "bool", "name": "hasBalance", "type": "bool"},
+      {"internalType": "bool", "name": "hasAllowance", "type": "bool"},
+      {"internalType": "uint256", "name": "balance", "type": "uint256"},
+      {"internalType": "uint256", "name": "allowance", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MINIMUM_STAKE",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "LOCK_PERIOD",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "Staked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "Unstaked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "distributionId", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "RewardsClaimed",
+    "type": "event"
+  }
+]
