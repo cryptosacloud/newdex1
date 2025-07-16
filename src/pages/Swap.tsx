@@ -6,6 +6,7 @@ import { useDexContract } from '../hooks/useDexContract'
 import TokenSelector from '../components/TokenSelector'
 import TestnetBadge from '../components/TestnetBadge'
 import { ethers } from 'ethers'
+import { ethers } from 'ethers'
 
 interface SwapProps {
   testnetMode: boolean;
@@ -43,19 +44,26 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
       return
     }
     
+    if (parseFloat(fromAmount) <= 0) {
+      setToAmount('0')
+      setPriceImpact('0')
+      return
+    }
+    
     try {
       const path = [fromToken.address, toToken.address]
       const amounts = await getAmountsOut(fromAmount, path).catch(() => ['0', '0'])
       setToAmount(amounts[1] || '0')
       
       // Calculate price impact (simplified)
-      const fromValue = parseFloat(amounts[0] || '0')
-      const toValue = parseFloat(amounts[1] || '0')
+      const fromValue = parseFloat(amounts[0] || '0') 
+      const toValue = parseFloat(amounts[1] || '0') 
       const impact = fromValue > 0 ? Math.abs((fromValue - toValue) / fromValue * 100) : 0
       setPriceImpact(impact.toFixed(2))
     } catch (error) {
       console.error('Error calculating output amount:', error)
       setToAmount('0')
+      setPriceImpact('0')
     }
   }
 
@@ -111,16 +119,20 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
       return
     }
     
-    if (!fromToken || !contracts.router) {
-      alert('Token or router not available')
+    if (!fromToken || !contracts.router || !fromAmount) {
+      alert('Token, router, or amount not available')
       return
     }
     
     try {
       setIsSwapping(true)
-      const routerAddress = await contracts.router.getAddress()
+      const routerAddress = await contracts.router.getAddress().catch(error => {
+        console.error('Error getting router address:', error)
+        throw new Error('Failed to get router address')
+      })
       await approveToken(fromToken.address, routerAddress, fromAmount)
       setNeedsApproval(false)
+      alert('Approval successful!')
       alert('Approval successful!')
     } catch (error) {
       console.error('Approval failed:', error)
@@ -136,13 +148,19 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
       return
     }
     
-    if (!fromToken || !toToken || !fromAmount || !toAmount) {
+    if (!fromToken || !toToken || !fromAmount || !toAmount || parseFloat(fromAmount) <= 0 || parseFloat(toAmount) <= 0) {
       alert('Please select tokens and enter amounts')
       return
     }
     
     try {
       setIsSwapping(true)
+      
+      // Ensure we have valid addresses
+      if (!fromToken?.address || !toToken?.address) {
+        alert('Invalid token addresses')
+        return
+      }
       
       // Ensure we have valid addresses
       if (!fromToken?.address || !toToken?.address) {
@@ -161,6 +179,9 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
       
       await swapExactTokensForTokens(fromAmount, minAmountOut, path, deadline)
       
+      alert('Swap successful!')
+      setFromAmount('')
+      setToAmount('')
       alert('Swap successful!')
       setFromAmount('')
       setToAmount('')
@@ -251,6 +272,7 @@ const Swap: React.FC<SwapProps> = ({ testnetMode }) => {
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-gray-600 dark:text-gray-400">Transaction Fee</span>
               <span className="font-medium text-orange-600 dark:text-orange-400">$3 USDT</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">(Fixed fee)</span>
               <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">(Fixed fee)</span>
             </div>
             {parseFloat(priceImpact) > 5 && (
