@@ -5,7 +5,6 @@ import { useWallet } from '../contexts/WalletContext'
 import { useBridgeContract } from '../hooks/useBridgeContract'
 import { getTokensByChain } from '../constants/tokens'
 import TestnetBadge from '../components/TestnetBadge'
-import TestnetBadge from '../components/TestnetBadge'
 
 interface BridgeProps {
   testnetMode: boolean;
